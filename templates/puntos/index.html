@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Simulador Ley de Coulomb</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header { background: linear-gradient(90deg,#1a1a3e,#2a1a4e); padding: 10px 24px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #3a2a6e; flex-shrink:0; }
+  header h1 { font-size:1.15rem; font-weight:700; background:linear-gradient(90deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  header span { font-size:.72rem; color:#7c6aaa; background:#1f1f3a; padding:2px 10px; border-radius:20px; border:1px solid #3a2a6e; }
+  .workspace { display:flex; flex:1; overflow:hidden; }
+
+  /* PANEL */
+  .panel { width:280px; background:#12122a; border-right:1px solid #2a2a4e; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0; }
+  .panel::-webkit-scrollbar{width:5px} .panel::-webkit-scrollbar-thumb{background:#3a2a6e;border-radius:4px}
+  .section { padding:13px 14px; border-bottom:1px solid #1e1e3e; }
+  .section-title { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#7c6aaa; margin-bottom:10px; }
+  label { display:block; font-size:.73rem; color:#9090b0; margin-bottom:4px; margin-top:8px; }
+  label:first-of-type{margin-top:0}
+  input[type=number],select { width:100%; padding:7px 10px; background:#1c1c3a; border:1px solid #3a2a6e; border-radius:6px; color:#e0e0f0; font-size:.8rem; outline:none; transition:border .2s; }
+  input[type=number]:focus,select:focus{border-color:#7c6aaa}
+  select option{background:#1c1c3a}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  .btn-add { width:100%; padding:10px; background:linear-gradient(135deg,#5b21b6,#1d4ed8); border:none; border-radius:8px; color:white; font-weight:700; font-size:.85rem; cursor:pointer; transition:all .2s; font-family:inherit; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .btn-add:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(91,33,182,.5); }
+  .btn-add:active { transform:translateY(0); }
+
+  .btn-danger { width:100%; padding:8px; background:transparent; border:1px solid #7f1d1d; border-radius:8px; color:#fca5a5; font-size:.75rem; cursor:pointer; transition:background .2s; font-family:inherit; margin-top:6px; }
+  .btn-danger:hover{background:#2a0a0a}
+
+  /* Charge cards */
+  .charge-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#1c1c3a; border-radius:7px; margin-bottom:5px; font-size:.75rem; border:1px solid #2a2a4e; transition:border-color .2s; }
+  .charge-item.dragging-active { border-color:#a78bfa; background:#1f1840; }
+  .charge-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
+  .charge-info { flex:1; min-width:0; }
+  .charge-info .cname { font-weight:600; color:#d0d0f0; }
+  .charge-info .cval { color:#8080a0; font-size:.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .charge-del { background:none; border:none; color:#7f1d1d; cursor:pointer; font-size:.95rem; padding:0 3px; line-height:1; transition:color .2s; }
+  .charge-del:hover{color:#ef4444}
+
+  /* Result table */
+  .result-table{width:100%;border-collapse:collapse;font-size:.7rem}
+  .result-table th{background:#1c1c3a;padding:5px 6px;text-align:left;color:#7c6aaa;font-weight:600;border-bottom:1px solid #2a2a4e}
+  .result-table td{padding:5px 6px;border-bottom:1px solid #1e1e3e;color:#c0c0e0}
+  .result-table tr:hover td{background:#1c1c3a}
+  .tag-rep{color:#f87171;font-weight:600} .tag-atr{color:#34d399;font-weight:600}
+
+  /* Canvas */
+  .canvas-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .canvas-toolbar { padding:7px 14px; background:#12122a; border-bottom:1px solid #2a2a4e; display:flex; align-items:center; gap:10px; font-size:.72rem; color:#7c6aaa; flex-shrink:0; flex-wrap:wrap; }
+  .hint { padding:3px 10px; background:#1c1c3a; border-radius:20px; border:1px solid #2a2a4e; }
+  .hint.active-drag { border-color:#a78bfa; color:#a78bfa; }
+  .canvas-wrapper { flex:1; position:relative; overflow:hidden; background:radial-gradient(ellipse at center,#141428 0%,#0a0a18 100%); }
+  canvas { display:block; width:100%; height:100%; }
+  canvas.grab { cursor:grab; }
+  canvas.grabbing { cursor:grabbing; }
+
+  .info-badge { position:absolute; top:10px; right:10px; background:#12122a; border:1px solid #2a2a4e; border-radius:8px; padding:7px 11px; font-size:.7rem; color:#7c6aaa; pointer-events:none; }
+  .info-badge strong { color:#a78bfa; display:block; margin-bottom:2px; font-size:.72rem; }
+
+  /* Coord mode panel */
+  #panelCoord { margin-top:10px; padding-top:10px; border-top:1px solid #2a2a4e; }
+  .mode-toggle{display:flex;background:#1c1c3a;border-radius:8px;border:1px solid #3a2a6e;overflow:hidden;margin-bottom:10px}
+  .mode-btn{flex:1;padding:7px;font-size:.72rem;cursor:pointer;border:none;background:transparent;color:#7c6aaa;transition:all .2s;font-family:inherit}
+  .mode-btn.active{background:linear-gradient(135deg,#3b1f7a,#1f3b7a);color:#e0e0f0;font-weight:600}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Simulador Ley de Coulomb</h1>
+  <span>F = k · q₁q₂ / r²</span>
+</header>
+
+<div class="workspace">
+  <div class="panel">
+
+    <!-- ADD CHARGE -->
+    <div class="section">
+      <div class="section-title">Nueva carga</div>
+      <label>Valor (C)</label>
+      <input type="number" id="valorCarga" step="0.000001" value="0.000001">
+      <label>Tipo</label>
+      <select id="tipoCarga">
+        <option value="positiva">Positiva (+)</option>
+        <option value="negativa">Negativa (−)</option>
+      </select>
+
+      <!-- Posición -->
+      <div class="mode-toggle" style="margin-top:10px">
+        <button class="mode-btn active" id="btnModoCenter" onclick="setPosMode('center')">⊕ Centro</button>
+        <button class="mode-btn" id="btnModoCoord" onclick="setPosMode('coord')">📐 Coord.</button>
+      </div>
+
+      <div id="panelCoord" style="display:none">
+        <div class="row2">
+          <div><label>Dist. (m)</label><input type="number" id="inputDist" step="0.1" value="1.0" min="0.01"></div>
+          <div><label>Ángulo (°)</label><input type="number" id="inputAngle" step="1" value="0" min="0" max="360"></div>
+        </div>
+        <div style="font-size:.65rem;color:#5a5a8a;margin-top:4px">Relativo a la última carga (o centro).</div>
+      </div>
+
+      <button class="btn-add" onclick="agregarCarga()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Agregar carga
+      </button>
+    </div>
+
+    <!-- LISTA -->
+    <div class="section">
+      <div class="section-title">Cargas (<span id="numCargas">0</span>)</div>
+      <div id="listaCargas"></div>
+      <button class="btn-danger" onclick="limpiar()">✕ Limpiar todo</button>
+    </div>
+
+    <!-- RESULTADOS -->
+    <div class="section">
+      <div class="section-title">Fuerzas entre pares</div>
+      <div id="resultados"><p style="color:#4a4a7a;font-size:.73rem">Coloca al menos 2 cargas.</p></div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <div class="canvas-toolbar">
+      <span class="hint">🔴 Positiva &nbsp; 🔵 Negativa</span>
+      <span class="hint">Escala: 100 px = 1 m</span>
+      <span class="hint" id="dragHint">☝ Arrastra las cargas para moverlas</span>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="canvas" class="grab"></canvas>
+      <div class="info-badge"><strong>Constante de Coulomb</strong>k = 8.99 × 10⁹ N·m²/C²</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx    = canvas.getContext("2d");
+const K      = 8.99e9;
+const SCALE  = 100;
+
+let cargas     = [];
+let dragging   = null;   // { charge, offX, offY }
+let posMode    = "center";
+let animFrame  = null;
+
+// ── Resize ──
+function resizeCanvas() {
+  const wr = canvas.parentElement;
+  canvas.width  = wr.clientWidth;
+  canvas.height = wr.clientHeight;
+  dibujar();
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+
+// ── Mode toggles ──
+function setPosMode(m) {
+  posMode = m;
+  document.getElementById("btnModoCenter").classList.toggle("active", m === "center");
+  document.getElementById("btnModoCoord").classList.toggle("active", m === "coord");
+  document.getElementById("panelCoord").style.display = m === "coord" ? "block" : "none";
+}
+
+// ── Add charge via button ──
+function agregarCarga() {
+  const v = parseFloat(document.getElementById("valorCarga").value) || 1e-6;
+  const t = document.getElementById("tipoCarga").value;
+  const q = t === "negativa" ? -Math.abs(v) : Math.abs(v);
+
+  let x, y;
+  if (posMode === "coord" && cargas.length > 0) {
+    const dist  = parseFloat(document.getElementById("inputDist").value)  || 1;
+    const angle = parseFloat(document.getElementById("inputAngle").value) || 0;
+    const rad   = angle * Math.PI / 180;
+    const last  = cargas[cargas.length - 1];
+    x = last.x + dist * SCALE * Math.cos(rad);
+    y = last.y - dist * SCALE * Math.sin(rad);
+  } else if (posMode === "coord" && cargas.length === 0) {
+    const dist  = parseFloat(document.getElementById("inputDist").value)  || 1;
+    const angle = parseFloat(document.getElementById("inputAngle").value) || 0;
+    const rad   = angle * Math.PI / 180;
+    x = canvas.width  / 2 + dist * SCALE * Math.cos(rad);
+    y = canvas.height / 2 - dist * SCALE * Math.sin(rad);
+  } else {
+    // Spread charges a bit so they don't stack
+    const offset = cargas.length * 80;
+    x = canvas.width  / 2 + (Math.cos(cargas.length * 1.2) * offset || 0);
+    y = canvas.height / 2 + (Math.sin(cargas.length * 1.2) * offset || 0);
+  }
+
+  cargas.push({ x, y, valor: q, tipo: t, id: Date.now() });
+  actualizarLista();
+  dibujar();
+}
+
+// ── Delete ──
+function eliminarCarga(id) {
+  cargas = cargas.filter(c => c.id !== id);
+  actualizarLista();
+  dibujar();
+}
+function limpiar() {
+  cargas = [];
+  actualizarLista();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  document.getElementById("resultados").innerHTML = '<p style="color:#4a4a7a;font-size:.73rem">Coloca al menos 2 cargas.</p>';
+}
+
+// ── Drag ──
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - r.left, y: src.clientY - r.top };
+}
+
+function hitTest(mx, my) {
+  // Reverse order so topmost drawn is picked first
+  for (let i = cargas.length - 1; i >= 0; i--) {
+    const c = cargas[i];
+    const d = Math.hypot(mx - c.x, my - c.y);
+    if (d <= 20) return c;
+  }
+  return null;
+}
+
+canvas.addEventListener("mousedown", e => {
+  const { x, y } = getPos(e);
+  const hit = hitTest(x, y);
+  if (hit) {
+    dragging = { charge: hit, offX: x - hit.x, offY: y - hit.y };
+    canvas.classList.replace("grab", "grabbing");
+    document.getElementById("dragHint").classList.add("active-drag");
+    document.getElementById("dragHint").textContent = "🟡 Arrastrando q" + (cargas.indexOf(hit)+1);
+    e.preventDefault();
+  }
+});
+
+canvas.addEventListener("mousemove", e => {
+  const { x, y } = getPos(e);
+  if (!dragging) {
+    canvas.style.cursor = hitTest(x, y) ? "grab" : "default";
+    return;
+  }
+  dragging.charge.x = x - dragging.offX;
+  dragging.charge.y = y - dragging.offY;
+  actualizarLista();
+  // Throttle with rAF
+  if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
+});
+
+canvas.addEventListener("mouseup", stopDrag);
+canvas.addEventListener("mouseleave", stopDrag);
+
+function stopDrag() {
+  if (!dragging) return;
+  dragging = null;
+  canvas.classList.replace("grabbing", "grab");
+  canvas.style.cursor = "";
+  document.getElementById("dragHint").classList.remove("active-drag");
+  document.getElementById("dragHint").textContent = "☝ Arrastra las cargas para moverlas";
+}
+
+// Touch support
+canvas.addEventListener("touchstart", e => {
+  const { x, y } = getPos(e);
+  const hit = hitTest(x, y);
+  if (hit) { dragging = { charge: hit, offX: x - hit.x, offY: y - hit.y }; e.preventDefault(); }
+}, { passive: false });
+
+canvas.addEventListener("touchmove", e => {
+  if (!dragging) return;
+  const { x, y } = getPos(e);
+  dragging.charge.x = x - dragging.offX;
+  dragging.charge.y = y - dragging.offY;
+  actualizarLista();
+  if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener("touchend", stopDrag);
+
+// ── Sidebar list ──
+function formatQ(v) {
+  const a = Math.abs(v);
+  if (a >= 1e-3) return v.toFixed(4) + " C";
+  if (a >= 1e-6) return (v*1e6).toFixed(2) + " μC";
+  if (a >= 1e-9) return (v*1e9).toFixed(2) + " nC";
+  return v.toExponential(2) + " C";
+}
+
+function actualizarLista() {
+  document.getElementById("numCargas").textContent = cargas.length;
+  const container = document.getElementById("listaCargas");
+  container.innerHTML = "";
+  cargas.forEach((c, i) => {
+    const col = c.tipo === "positiva" ? "#ef4444" : "#3b82f6";
+    const div = document.createElement("div");
+    div.className = "charge-item" + (dragging && dragging.charge === c ? " dragging-active" : "");
+    div.innerHTML = `
+      <div class="charge-dot" style="background:${col};box-shadow:0 0 6px ${col}"></div>
+      <div class="charge-info">
+        <div class="cname">q${i+1} &nbsp;<span style="color:${col};font-size:.65rem">${c.tipo==="positiva"?"+":"-"}</span></div>
+        <div class="cval">${formatQ(c.valor)} &nbsp;|&nbsp; (${c.x.toFixed(1)}, ${c.y.toFixed(1)}) px</div>
+      </div>
+      <button class="charge-del" onclick="eliminarCarga(${c.id})">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+// ── Draw ──
+function dibujar() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawGrid();
+  if (cargas.length >= 2) {
+    for (let i = 0; i < cargas.length; i++)
+      for (let j = i+1; j < cargas.length; j++)
+        drawConnection(cargas[i], cargas[j], i, j);
+    drawForceArrows();
+    calcularFuerzas();
+  }
+  drawCharges();
+}
+
+function drawGrid() {
+  ctx.save();
+  ctx.strokeStyle = "rgba(100,100,180,0.07)";
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += SCALE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+  for (let y = 0; y < canvas.height; y += SCALE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawConnection(c1, c2, i, j) {
+  const same = c1.tipo === c2.tipo;
+  const dx = c2.x - c1.x, dy = c2.y - c1.y;
+  const rPx = Math.hypot(dx, dy);
+  const r   = rPx / SCALE;
+
+  ctx.save();
+  ctx.setLineDash([5,5]);
+  ctx.strokeStyle = same ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.3)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y); ctx.stroke();
+  ctx.restore();
+
+  // Distance label
+  const mx = (c1.x+c2.x)/2, my = (c1.y+c2.y)/2;
+  const angle = Math.atan2(dy, dx);
+  ctx.save();
+  ctx.translate(mx, my);
+  ctx.rotate(angle);
+  ctx.font = "bold 10px Segoe UI";
+  ctx.fillStyle = "rgba(180,180,255,0.75)";
+  ctx.textAlign = "center";
+  ctx.fillText(r.toFixed(2) + " m", 0, -7);
+  ctx.restore();
+}
+
+function drawCharges() {
+  cargas.forEach((c, i) => {
+    const col  = c.tipo === "positiva" ? "#ef4444" : "#3b82f6";
+    const glow = c.tipo === "positiva" ? "rgba(239,68,68,0.45)" : "rgba(59,130,246,0.45)";
+    const isDragged = dragging && dragging.charge === c;
+    const radius = isDragged ? 17 : 14;
+
+    // Outer glow
+    const g = ctx.createRadialGradient(c.x, c.y, radius*.3, c.x, c.y, 32);
+    g.addColorStop(0, glow); g.addColorStop(1, "transparent");
+    ctx.beginPath(); ctx.arc(c.x, c.y, 32, 0, 2*Math.PI); ctx.fillStyle = g; ctx.fill();
+
+    // Main circle
+    ctx.beginPath(); ctx.arc(c.x, c.y, radius, 0, 2*Math.PI);
+    ctx.fillStyle = col;
+    if (isDragged) { ctx.shadowColor = col; ctx.shadowBlur = 20; }
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.closePath();
+
+    // Symbol
+    ctx.fillStyle = "white";
+    ctx.font = `bold ${isDragged?15:13}px Segoe UI`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(c.tipo === "positiva" ? "+" : "−", c.x, c.y);
+
+    // Label
+    ctx.font = "bold 11px Segoe UI";
+    ctx.fillStyle = isDragged ? "#a78bfa" : "#c8c8f0";
+    ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    ctx.fillText("q" + (i+1), c.x + radius + 4, c.y);
+    ctx.font = "9px Segoe UI";
+    ctx.fillStyle = "#7070a0";
+    ctx.textBaseline = "top";
+    ctx.fillText(formatQ(c.valor), c.x + radius + 4, c.y + 1);
+  });
+}
+
+function drawForceArrows() {
+  cargas.forEach((ci, i) => {
+    let fx = 0, fy = 0;
+    cargas.forEach((cj, j) => {
+      if (i === j) return;
+      const dx = ci.x - cj.x, dy = ci.y - cj.y;
+      const rPx = Math.hypot(dx, dy);
+      if (rPx < 1) return;
+      const r = rPx / SCALE;
+      const F = K * Math.abs(ci.valor * cj.valor) / (r * r);
+      const dir = ci.tipo === cj.tipo ? 1 : -1;
+      fx += dir * F * (dx / rPx);
+      fy += dir * F * (dy / rPx);
+    });
+    const fMag = Math.hypot(fx, fy);
+    if (fMag < 1e-30) return;
+    const aLen = Math.min(65, Math.max(22, 28 + Math.log10(fMag + 1) * 9));
+    const nx = fx / fMag, ny = fy / fMag;
+    drawArrow(ci.x + nx*19, ci.y + ny*19, ci.x + nx*(19+aLen), ci.y + ny*(19+aLen), "#facc15");
+  });
+}
+
+function drawArrow(x1, y1, x2, y2, col) {
+  const a = Math.atan2(y2-y1, x2-x1);
+  ctx.save();
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 10*Math.cos(a-.38), y2 - 10*Math.sin(a-.38));
+  ctx.lineTo(x2 - 10*Math.cos(a+.38), y2 - 10*Math.sin(a+.38));
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function calcularFuerzas() {
+  if (cargas.length < 2) {
+    document.getElementById("resultados").innerHTML = '<p style="color:#4a4a7a;font-size:.73rem">Coloca al menos 2 cargas.</p>';
+    return;
+  }
+  let rows = "";
+  for (let i = 0; i < cargas.length; i++) {
+    for (let j = i+1; j < cargas.length; j++) {
+      const ci = cargas[i], cj = cargas[j];
+      const dx = cj.x - ci.x, dy = cj.y - ci.y;
+      const rPx = Math.hypot(dx, dy), r = rPx / SCALE;
+      const F   = K * Math.abs(ci.valor * cj.valor) / (r * r);
+      const ang = ((Math.atan2(-dy, dx) * 180 / Math.PI) + 360) % 360;
+      const tipo = ci.tipo === cj.tipo
+        ? '<span class="tag-rep">Repulsión</span>'
+        : '<span class="tag-atr">Atracción</span>';
+      rows += `<tr>
+        <td>q${i+1}–q${j+1}</td>
+        <td>${r.toFixed(3)} m</td>
+        <td>${ang.toFixed(1)}°</td>
+        <td>${F.toExponential(3)} N</td>
+        <td>${tipo}</td>
+      </tr>`;
+    }
+  }
+  document.getElementById("resultados").innerHTML = `
+    <table class="result-table">
+      <thead><tr><th>Par</th><th>Dist.</th><th>Ángulo</th><th>Fuerza</th><th>Tipo</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+</script>
+</body>
+</html>
