@@ -1,5 +1,5 @@
 # CAMBIO CLAVE AQUÍ: Usar Bullseye (Debian 11) en lugar de Buster (Debian 10)
-FROM python:3.11-slim-bullseye 
+FROM python:3.13-slim-bullseye 
 
 WORKDIR /app
 
