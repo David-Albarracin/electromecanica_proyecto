@@ -1,471 +1,1248 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<title>Simulador Ley de Coulomb</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0f0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-  header { background: linear-gradient(90deg,#1a1a3e,#2a1a4e); padding: 10px 24px; display:flex; align-items:center; gap:12px; border-bottom:1px solid #3a2a6e; flex-shrink:0; }
-  header h1 { font-size:1.15rem; font-weight:700; background:linear-gradient(90deg,#a78bfa,#60a5fa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-  header span { font-size:.72rem; color:#7c6aaa; background:#1f1f3a; padding:2px 10px; border-radius:20px; border:1px solid #3a2a6e; }
-  .workspace { display:flex; flex:1; overflow:hidden; }
+  <meta charset="UTF-8">
+  <title>Simulador Ley de Coulomb</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  /* PANEL */
-  .panel { width:280px; background:#12122a; border-right:1px solid #2a2a4e; display:flex; flex-direction:column; overflow-y:auto; flex-shrink:0; }
-  .panel::-webkit-scrollbar{width:5px} .panel::-webkit-scrollbar-thumb{background:#3a2a6e;border-radius:4px}
-  .section { padding:13px 14px; border-bottom:1px solid #1e1e3e; }
-  .section-title { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#7c6aaa; margin-bottom:10px; }
-  label { display:block; font-size:.73rem; color:#9090b0; margin-bottom:4px; margin-top:8px; }
-  label:first-of-type{margin-top:0}
-  input[type=number],select { width:100%; padding:7px 10px; background:#1c1c3a; border:1px solid #3a2a6e; border-radius:6px; color:#e0e0f0; font-size:.8rem; outline:none; transition:border .2s; }
-  input[type=number]:focus,select:focus{border-color:#7c6aaa}
-  select option{background:#1c1c3a}
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0a18;
+      color: #e0e0f0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-  .btn-add { width:100%; padding:10px; background:linear-gradient(135deg,#5b21b6,#1d4ed8); border:none; border-radius:8px; color:white; font-weight:700; font-size:.85rem; cursor:pointer; transition:all .2s; font-family:inherit; margin-top:10px; display:flex; align-items:center; justify-content:center; gap:6px; }
-  .btn-add:hover { transform:translateY(-1px); box-shadow:0 4px 20px rgba(91,33,182,.5); }
-  .btn-add:active { transform:translateY(0); }
+    header {
+      background: linear-gradient(90deg, #12123a, #1e1050);
+      padding: 9px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #2a2060;
+      flex-shrink: 0;
+    }
 
-  .btn-danger { width:100%; padding:8px; background:transparent; border:1px solid #7f1d1d; border-radius:8px; color:#fca5a5; font-size:.75rem; cursor:pointer; transition:background .2s; font-family:inherit; margin-top:6px; }
-  .btn-danger:hover{background:#2a0a0a}
+    header h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
-  /* Charge cards */
-  .charge-item { display:flex; align-items:center; gap:8px; padding:8px 10px; background:#1c1c3a; border-radius:7px; margin-bottom:5px; font-size:.75rem; border:1px solid #2a2a4e; transition:border-color .2s; }
-  .charge-item.dragging-active { border-color:#a78bfa; background:#1f1840; }
-  .charge-dot { width:11px; height:11px; border-radius:50%; flex-shrink:0; }
-  .charge-info { flex:1; min-width:0; }
-  .charge-info .cname { font-weight:600; color:#d0d0f0; }
-  .charge-info .cval { color:#8080a0; font-size:.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .charge-del { background:none; border:none; color:#7f1d1d; cursor:pointer; font-size:.95rem; padding:0 3px; line-height:1; transition:color .2s; }
-  .charge-del:hover{color:#ef4444}
+    header .formula {
+      font-size: .7rem;
+      color: #6050a0;
+      background: #14143a;
+      padding: 2px 10px;
+      border-radius: 20px;
+      border: 1px solid #2a2060;
+    }
 
-  /* Result table */
-  .result-table{width:100%;border-collapse:collapse;font-size:.7rem}
-  .result-table th{background:#1c1c3a;padding:5px 6px;text-align:left;color:#7c6aaa;font-weight:600;border-bottom:1px solid #2a2a4e}
-  .result-table td{padding:5px 6px;border-bottom:1px solid #1e1e3e;color:#c0c0e0}
-  .result-table tr:hover td{background:#1c1c3a}
-  .tag-rep{color:#f87171;font-weight:600} .tag-atr{color:#34d399;font-weight:600}
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
 
-  /* Canvas */
-  .canvas-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-  .canvas-toolbar { padding:7px 14px; background:#12122a; border-bottom:1px solid #2a2a4e; display:flex; align-items:center; gap:10px; font-size:.72rem; color:#7c6aaa; flex-shrink:0; flex-wrap:wrap; }
-  .hint { padding:3px 10px; background:#1c1c3a; border-radius:20px; border:1px solid #2a2a4e; }
-  .hint.active-drag { border-color:#a78bfa; color:#a78bfa; }
-  .canvas-wrapper { flex:1; position:relative; overflow:hidden; background:radial-gradient(ellipse at center,#141428 0%,#0a0a18 100%); }
-  canvas { display:block; width:100%; height:100%; }
-  canvas.grab { cursor:grab; }
-  canvas.grabbing { cursor:grabbing; }
+    /* ── PANEL ── */
+    .panel {
+      width: 278px;
+      background: #0e0e28;
+      border-right: 1px solid #1e1e40;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
 
-  .info-badge { position:absolute; top:10px; right:10px; background:#12122a; border:1px solid #2a2a4e; border-radius:8px; padding:7px 11px; font-size:.7rem; color:#7c6aaa; pointer-events:none; }
-  .info-badge strong { color:#a78bfa; display:block; margin-bottom:2px; font-size:.72rem; }
+    .panel::-webkit-scrollbar {
+      width: 4px;
+    }
 
-  /* Coord mode panel */
-  #panelCoord { margin-top:10px; padding-top:10px; border-top:1px solid #2a2a4e; }
-  .mode-toggle{display:flex;background:#1c1c3a;border-radius:8px;border:1px solid #3a2a6e;overflow:hidden;margin-bottom:10px}
-  .mode-btn{flex:1;padding:7px;font-size:.72rem;cursor:pointer;border:none;background:transparent;color:#7c6aaa;transition:all .2s;font-family:inherit}
-  .mode-btn.active{background:linear-gradient(135deg,#3b1f7a,#1f3b7a);color:#e0e0f0;font-weight:600}
-</style>
+    .panel::-webkit-scrollbar-thumb {
+      background: #2a2060;
+      border-radius: 4px;
+    }
+
+    .section {
+      padding: 11px 12px;
+      border-bottom: 1px solid #161630;
+    }
+
+    .section-title {
+      font-size: .6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: #5a4a9a;
+      margin-bottom: 9px;
+    }
+
+    label {
+      display: block;
+      font-size: .7rem;
+      color: #8080b0;
+      margin-bottom: 3px;
+      margin-top: 7px;
+    }
+
+    label:first-of-type {
+      margin-top: 0;
+    }
+
+    input[type=number],
+    select {
+      width: 100%;
+      padding: 6px 9px;
+      background: #181838;
+      border: 1px solid #2a2060;
+      border-radius: 6px;
+      color: #d0d0f0;
+      font-size: .77rem;
+      outline: none;
+      transition: border .2s;
+    }
+
+    input[type=number]:focus,
+    select:focus {
+      border-color: #6050a0;
+    }
+
+    select option {
+      background: #181838;
+    }
+
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn-add {
+      width: 100%;
+      padding: 8px;
+      background: linear-gradient(135deg, #4c1d95, #1e3a8a);
+      border: none;
+      border-radius: 7px;
+      color: white;
+      font-weight: 700;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: inherit;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .btn-add:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(76, 29, 149, .5);
+    }
+
+    .btn-danger {
+      width: 100%;
+      padding: 7px;
+      background: transparent;
+      border: 1px solid #5a1010;
+      border-radius: 7px;
+      color: #fca5a5;
+      font-size: .72rem;
+      cursor: pointer;
+      transition: background .2s;
+      font-family: inherit;
+      margin-top: 5px;
+    }
+
+    .btn-danger:hover {
+      background: #1a0808;
+    }
+
+    /* charge cards */
+    .charge-item {
+      background: #141432;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      border: 1px solid #1e1e40;
+      transition: border-color .2s;
+      overflow: hidden;
+    }
+
+    .charge-item.is-q1 {
+      border-color: #5040a055;
+    }
+
+    .charge-item.drag-active {
+      border-color: #a78bfa;
+      background: #1a1848;
+    }
+
+    .charge-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 8px;
+    }
+
+    .charge-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .charge-name {
+      font-weight: 700;
+      font-size: .73rem;
+      color: #d0d0f0;
+    }
+
+    .q1-badge {
+      display: inline-block;
+      background: #4c1d9540;
+      border: 1px solid #6050a055;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: .58rem;
+      color: #a78bfa;
+      margin-left: 3px;
+    }
+
+    .charge-sign {
+      font-size: .67rem;
+      color: #8080a0;
+    }
+
+    .charge-qval {
+      font-size: .64rem;
+      color: #505080;
+      margin-left: auto;
+      margin-right: 2px;
+    }
+
+    .charge-del {
+      background: none;
+      border: none;
+      color: #5a1010;
+      cursor: pointer;
+      font-size: .88rem;
+      padding: 0 2px;
+      transition: color .2s;
+      flex-shrink: 0;
+    }
+
+    .charge-del:hover {
+      color: #ef4444;
+    }
+
+    .charge-fields {
+      padding: 0 8px 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .charge-fields label {
+      font-size: .62rem;
+      color: #505080;
+      margin: 0 0 2px;
+    }
+
+    .charge-fields input {
+      padding: 5px 7px;
+      font-size: .74rem;
+    }
+
+    .delta-row {
+      grid-column: 1/-1;
+      display: flex;
+      gap: 10px;
+      font-size: .65rem;
+      color: #606080;
+      padding-top: 3px;
+      flex-wrap: wrap;
+    }
+
+    .charge-q1-pos {
+      padding: 0 8px 7px;
+      font-size: .64rem;
+      color: #3a3a6a;
+    }
+
+    /* results */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .65rem;
+    }
+
+    .result-table th {
+      background: #141432;
+      padding: 4px 5px;
+      text-align: left;
+      color: #5a4a9a;
+      font-weight: 600;
+      border-bottom: 1px solid #1e1e40;
+    }
+
+    .result-table td {
+      padding: 4px 5px;
+      border-bottom: 1px solid #161630;
+      color: #b0b0d0;
+    }
+
+    .result-table tr:hover td {
+      background: #141432;
+    }
+
+    .tag-rep {
+      color: #f87171;
+      font-weight: 600;
+    }
+
+    .tag-atr {
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    /* ── Canvas area ── */
+    .canvas-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .canvas-toolbar {
+      padding: 5px 12px;
+      background: #0e0e28;
+      border-bottom: 1px solid #1e1e40;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: .69rem;
+      color: #5a4a9a;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .hint {
+      padding: 3px 8px;
+      background: #141432;
+      border-radius: 20px;
+      border: 1px solid #1e1e40;
+      white-space: nowrap;
+    }
+
+    .hint.active-drag {
+      border-color: #a78bfa;
+      color: #a78bfa;
+    }
+
+    /* zoom controls */
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: auto;
+    }
+
+    .zbtn {
+      width: 24px;
+      height: 24px;
+      background: #141432;
+      border: 1px solid #2a2060;
+      border-radius: 6px;
+      color: #9090c0;
+      font-size: .9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+      font-family: inherit;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .zbtn:hover {
+      background: #1e1e50;
+      border-color: #6050a0;
+      color: #e0e0f0;
+    }
+
+    .zlevel {
+      font-size: .72rem;
+      color: #a78bfa;
+      background: #141432;
+      border: 1px solid #2a2060;
+      border-radius: 6px;
+      padding: 3px 7px;
+      min-width: 52px;
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .sinfo {
+      font-size: .63rem;
+      color: #404068;
+      white-space: nowrap;
+    }
+
+    /* mode toggle */
+    .mode-toggle {
+      display: flex;
+      background: #141432;
+      border-radius: 7px;
+      border: 1px solid #2a2060;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 6px;
+      font-size: .69rem;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #5a4a9a;
+      transition: all .2s;
+      font-family: inherit;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #2e1065, #1e3a8a);
+      color: #e0e0f0;
+      font-weight: 600;
+    }
+
+    .canvas-wrapper {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(ellipse at 40% 45%, #0e0e2a, #06060f);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    canvas.grab {
+      cursor: grab;
+    }
+
+    canvas.grabbing {
+      cursor: grabbing;
+    }
+
+    .info-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #0e0e28cc;
+      border: 1px solid #1e1e40;
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: .67rem;
+      color: #5a4a9a;
+      pointer-events: none;
+      backdrop-filter: blur(6px);
+    }
+
+    .info-badge strong {
+      color: #a78bfa;
+      display: block;
+      margin-bottom: 2px;
+      font-size: .69rem;
+    }
+  </style>
 </head>
+
 <body>
 
-<header>
-  <h1>⚡ Simulador Ley de Coulomb</h1>
-  <span>F = k · q₁q₂ / r²</span>
-</header>
+  <header>
+    <h1>⚡ Simulador Ley de Coulomb</h1>
+    <span class="formula">F = k · q₁q₂ / r²</span>
+  </header>
 
-<div class="workspace">
-  <div class="panel">
+  <div class="workspace">
+    <div class="panel">
 
-    <!-- ADD CHARGE -->
-    <div class="section">
-      <div class="section-title">Nueva carga</div>
-      <label>Valor (C)</label>
-      <input type="number" id="valorCarga" step="0.000001" value="0.000001">
-      <label>Tipo</label>
-      <select id="tipoCarga">
-        <option value="positiva">Positiva (+)</option>
-        <option value="negativa">Negativa (−)</option>
-      </select>
+      <div class="section">
+        <div class="section-title">Nueva carga</div>
+        <label>Valor (C)</label>
+        <input type="number" id="valorCarga" step="any" value="0.000001">
+        <label>Tipo</label>
+        <select id="tipoCarga">
+          <option value="positiva">Positiva (+)</option>
+          <option value="negativa">Negativa (−)</option>
+        </select>
 
-      <!-- Posición -->
-      <div class="mode-toggle" style="margin-top:10px">
-        <button class="mode-btn active" id="btnModoCenter" onclick="setPosMode('center')">⊕ Centro</button>
-        <button class="mode-btn" id="btnModoCoord" onclick="setPosMode('coord')">📐 Coord.</button>
-      </div>
-
-      <div id="panelCoord" style="display:none">
-        <div class="row2">
-          <div><label>Dist. (m)</label><input type="number" id="inputDist" step="0.1" value="1.0" min="0.01"></div>
-          <div><label>Ángulo (°)</label><input type="number" id="inputAngle" step="1" value="0" min="0" max="360"></div>
+        <div class="mode-toggle" style="margin-top:9px">
+          <button class="mode-btn active" id="btnModoCenter" onclick="setPosMode('center')">⊕ Centro</button>
+          <button class="mode-btn" id="btnModoCoord" onclick="setPosMode('coord')">📐 Coord.</button>
         </div>
-        <div style="font-size:.65rem;color:#5a5a8a;margin-top:4px">Relativo a la última carga (o centro).</div>
+
+        <div id="panelCoord" style="display:none">
+          <div class="row2">
+            <div><label>Dist. desde q1 (m)</label>
+              <input type="number" id="inputDist" step="any" value="1" min="1e-12">
+            </div>
+            <div><label>Ángulo desde q1 (°)</label>
+              <input type="number" id="inputAngle" step="1" value="0" min="0" max="360">
+            </div>
+          </div>
+          <div style="font-size:.61rem;color:#383868;margin-top:4px">
+            0° = +X (derecha) · 90° = +Y (arriba)
+          </div>
+        </div>
+
+        <button class="btn-add" onclick="agregarCarga()">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+          Agregar carga
+        </button>
       </div>
 
-      <button class="btn-add" onclick="agregarCarga()">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        Agregar carga
-      </button>
-    </div>
-
-    <!-- LISTA -->
-    <div class="section">
-      <div class="section-title">Cargas (<span id="numCargas">0</span>)</div>
-      <div id="listaCargas"></div>
-      <button class="btn-danger" onclick="limpiar()">✕ Limpiar todo</button>
-    </div>
-
-    <!-- RESULTADOS -->
-    <div class="section">
-      <div class="section-title">Fuerzas entre pares</div>
-      <div id="resultados"><p style="color:#4a4a7a;font-size:.73rem">Coloca al menos 2 cargas.</p></div>
-    </div>
-
-  </div>
-
-  <!-- CANVAS -->
-  <div class="canvas-area">
-    <div class="canvas-toolbar">
-      <span class="hint">🔴 Positiva &nbsp; 🔵 Negativa</span>
-      <span class="hint">Escala: 100 px = 1 m</span>
-      <span class="hint" id="dragHint">☝ Arrastra las cargas para moverlas</span>
-    </div>
-    <div class="canvas-wrapper">
-      <canvas id="canvas" class="grab"></canvas>
-      <div class="info-badge"><strong>Constante de Coulomb</strong>k = 8.99 × 10⁹ N·m²/C²</div>
-    </div>
-  </div>
-</div>
-
-<script>
-const canvas = document.getElementById("canvas");
-const ctx    = canvas.getContext("2d");
-const K      = 8.99e9;
-const SCALE  = 100;
-
-let cargas     = [];
-let dragging   = null;   // { charge, offX, offY }
-let posMode    = "center";
-let animFrame  = null;
-
-// ── Resize ──
-function resizeCanvas() {
-  const wr = canvas.parentElement;
-  canvas.width  = wr.clientWidth;
-  canvas.height = wr.clientHeight;
-  dibujar();
-}
-window.addEventListener("resize", resizeCanvas);
-resizeCanvas();
-
-// ── Mode toggles ──
-function setPosMode(m) {
-  posMode = m;
-  document.getElementById("btnModoCenter").classList.toggle("active", m === "center");
-  document.getElementById("btnModoCoord").classList.toggle("active", m === "coord");
-  document.getElementById("panelCoord").style.display = m === "coord" ? "block" : "none";
-}
-
-// ── Add charge via button ──
-function agregarCarga() {
-  const v = parseFloat(document.getElementById("valorCarga").value) || 1e-6;
-  const t = document.getElementById("tipoCarga").value;
-  const q = t === "negativa" ? -Math.abs(v) : Math.abs(v);
-
-  let x, y;
-  if (posMode === "coord" && cargas.length > 0) {
-    const dist  = parseFloat(document.getElementById("inputDist").value)  || 1;
-    const angle = parseFloat(document.getElementById("inputAngle").value) || 0;
-    const rad   = angle * Math.PI / 180;
-    const last  = cargas[cargas.length - 1];
-    x = last.x + dist * SCALE * Math.cos(rad);
-    y = last.y - dist * SCALE * Math.sin(rad);
-  } else if (posMode === "coord" && cargas.length === 0) {
-    const dist  = parseFloat(document.getElementById("inputDist").value)  || 1;
-    const angle = parseFloat(document.getElementById("inputAngle").value) || 0;
-    const rad   = angle * Math.PI / 180;
-    x = canvas.width  / 2 + dist * SCALE * Math.cos(rad);
-    y = canvas.height / 2 - dist * SCALE * Math.sin(rad);
-  } else {
-    // Spread charges a bit so they don't stack
-    const offset = cargas.length * 80;
-    x = canvas.width  / 2 + (Math.cos(cargas.length * 1.2) * offset || 0);
-    y = canvas.height / 2 + (Math.sin(cargas.length * 1.2) * offset || 0);
-  }
-
-  cargas.push({ x, y, valor: q, tipo: t, id: Date.now() });
-  actualizarLista();
-  dibujar();
-}
-
-// ── Delete ──
-function eliminarCarga(id) {
-  cargas = cargas.filter(c => c.id !== id);
-  actualizarLista();
-  dibujar();
-}
-function limpiar() {
-  cargas = [];
-  actualizarLista();
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  document.getElementById("resultados").innerHTML = '<p style="color:#4a4a7a;font-size:.73rem">Coloca al menos 2 cargas.</p>';
-}
-
-// ── Drag ──
-function getPos(e) {
-  const r = canvas.getBoundingClientRect();
-  const src = e.touches ? e.touches[0] : e;
-  return { x: src.clientX - r.left, y: src.clientY - r.top };
-}
-
-function hitTest(mx, my) {
-  // Reverse order so topmost drawn is picked first
-  for (let i = cargas.length - 1; i >= 0; i--) {
-    const c = cargas[i];
-    const d = Math.hypot(mx - c.x, my - c.y);
-    if (d <= 20) return c;
-  }
-  return null;
-}
-
-canvas.addEventListener("mousedown", e => {
-  const { x, y } = getPos(e);
-  const hit = hitTest(x, y);
-  if (hit) {
-    dragging = { charge: hit, offX: x - hit.x, offY: y - hit.y };
-    canvas.classList.replace("grab", "grabbing");
-    document.getElementById("dragHint").classList.add("active-drag");
-    document.getElementById("dragHint").textContent = "🟡 Arrastrando q" + (cargas.indexOf(hit)+1);
-    e.preventDefault();
-  }
-});
-
-canvas.addEventListener("mousemove", e => {
-  const { x, y } = getPos(e);
-  if (!dragging) {
-    canvas.style.cursor = hitTest(x, y) ? "grab" : "default";
-    return;
-  }
-  dragging.charge.x = x - dragging.offX;
-  dragging.charge.y = y - dragging.offY;
-  actualizarLista();
-  // Throttle with rAF
-  if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
-});
-
-canvas.addEventListener("mouseup", stopDrag);
-canvas.addEventListener("mouseleave", stopDrag);
-
-function stopDrag() {
-  if (!dragging) return;
-  dragging = null;
-  canvas.classList.replace("grabbing", "grab");
-  canvas.style.cursor = "";
-  document.getElementById("dragHint").classList.remove("active-drag");
-  document.getElementById("dragHint").textContent = "☝ Arrastra las cargas para moverlas";
-}
-
-// Touch support
-canvas.addEventListener("touchstart", e => {
-  const { x, y } = getPos(e);
-  const hit = hitTest(x, y);
-  if (hit) { dragging = { charge: hit, offX: x - hit.x, offY: y - hit.y }; e.preventDefault(); }
-}, { passive: false });
-
-canvas.addEventListener("touchmove", e => {
-  if (!dragging) return;
-  const { x, y } = getPos(e);
-  dragging.charge.x = x - dragging.offX;
-  dragging.charge.y = y - dragging.offY;
-  actualizarLista();
-  if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
-  e.preventDefault();
-}, { passive: false });
-
-canvas.addEventListener("touchend", stopDrag);
-
-// ── Sidebar list ──
-function formatQ(v) {
-  const a = Math.abs(v);
-  if (a >= 1e-3) return v.toFixed(4) + " C";
-  if (a >= 1e-6) return (v*1e6).toFixed(2) + " μC";
-  if (a >= 1e-9) return (v*1e9).toFixed(2) + " nC";
-  return v.toExponential(2) + " C";
-}
-
-function actualizarLista() {
-  document.getElementById("numCargas").textContent = cargas.length;
-  const container = document.getElementById("listaCargas");
-  container.innerHTML = "";
-  cargas.forEach((c, i) => {
-    const col = c.tipo === "positiva" ? "#ef4444" : "#3b82f6";
-    const div = document.createElement("div");
-    div.className = "charge-item" + (dragging && dragging.charge === c ? " dragging-active" : "");
-    div.innerHTML = `
-      <div class="charge-dot" style="background:${col};box-shadow:0 0 6px ${col}"></div>
-      <div class="charge-info">
-        <div class="cname">q${i+1} &nbsp;<span style="color:${col};font-size:.65rem">${c.tipo==="positiva"?"+":"-"}</span></div>
-        <div class="cval">${formatQ(c.valor)} &nbsp;|&nbsp; (${c.x.toFixed(1)}, ${c.y.toFixed(1)}) px</div>
+      <div class="section">
+        <div class="section-title">Cargas (<span id="numCargas">0</span>)</div>
+        <div id="listaCargas"></div>
+        <button class="btn-danger" onclick="limpiar()">✕ Limpiar todo</button>
       </div>
-      <button class="charge-del" onclick="eliminarCarga(${c.id})">✕</button>`;
-    container.appendChild(div);
-  });
-}
 
-// ── Draw ──
-function dibujar() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawGrid();
-  if (cargas.length >= 2) {
-    for (let i = 0; i < cargas.length; i++)
-      for (let j = i+1; j < cargas.length; j++)
-        drawConnection(cargas[i], cargas[j], i, j);
-    drawForceArrows();
-    calcularFuerzas();
-  }
-  drawCharges();
-}
+      <div class="section">
+        <div class="section-title">Fuerzas entre pares</div>
+        <div id="resultados">
+          <p style="color:#303060;font-size:.72rem">Coloca al menos 2 cargas.</p>
+        </div>
+      </div>
 
-function drawGrid() {
-  ctx.save();
-  ctx.strokeStyle = "rgba(100,100,180,0.07)";
-  ctx.lineWidth = 1;
-  for (let x = 0; x < canvas.width; x += SCALE) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
-  for (let y = 0; y < canvas.height; y += SCALE) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
-  ctx.restore();
-}
+    </div>
 
-function drawConnection(c1, c2, i, j) {
-  const same = c1.tipo === c2.tipo;
-  const dx = c2.x - c1.x, dy = c2.y - c1.y;
-  const rPx = Math.hypot(dx, dy);
-  const r   = rPx / SCALE;
+    <div class="canvas-area">
+      <div class="canvas-toolbar">
+        <span class="hint">🔴 Positiva · 🔵 Negativa</span>
+        <span class="hint" id="dragHint">☝ Arrastra cargas · espacio vacío = mover vista</span>
+        <div class="zoom-controls">
+          <button class="zbtn" onclick="zoomBy(0.5)" title="Alejar  (−)">−</button>
+          <span class="zlevel" id="zoomLevel">1.00×</span>
+          <button class="zbtn" onclick="zoomBy(2)" title="Acercar (+)">+</button>
+          <button class="zbtn" onclick="fitAll()" title="Ajustar (F)">⊡</button>
+          <button class="zbtn" onclick="resetView()" title="Reset   (0)">⌂</button>
+          <span class="sinfo" id="sinfo">1 m/100px</span>
+        </div>
+      </div>
+      <div class="canvas-wrapper">
+        <canvas id="canvas" class="grab"></canvas>
+        <div class="info-badge">
+          <strong>Constante de Coulomb</strong>
+          k = 8.99 × 10⁹ N·m²/C²
+        </div>
+      </div>
+    </div>
+  </div>
 
-  ctx.save();
-  ctx.setLineDash([5,5]);
-  ctx.strokeStyle = same ? "rgba(239,68,68,0.3)" : "rgba(52,211,153,0.3)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y); ctx.stroke();
-  ctx.restore();
+  <script>
+    /* ══════════════════════════════════════════════
+       PARTE 2 — Estado + transformaciones + cargas
+       ══════════════════════════════════════════════ */
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-  // Distance label
-  const mx = (c1.x+c2.x)/2, my = (c1.y+c2.y)/2;
-  const angle = Math.atan2(dy, dx);
-  ctx.save();
-  ctx.translate(mx, my);
-  ctx.rotate(angle);
-  ctx.font = "bold 10px Segoe UI";
-  ctx.fillStyle = "rgba(180,180,255,0.75)";
-  ctx.textAlign = "center";
-  ctx.fillText(r.toFixed(2) + " m", 0, -7);
-  ctx.restore();
-}
+    const K = 8.99e9;
+    const BASE_SCALE = 100;          // px/m at zoom=1
 
-function drawCharges() {
-  cargas.forEach((c, i) => {
-    const col  = c.tipo === "positiva" ? "#ef4444" : "#3b82f6";
-    const glow = c.tipo === "positiva" ? "rgba(239,68,68,0.45)" : "rgba(59,130,246,0.45)";
-    const isDragged = dragging && dragging.charge === c;
-    const radius = isDragged ? 17 : 14;
+    // ── Camera ──────────────────────────────────────
+    const cam = { zoom: 1, panX: 0, panY: 0, _init: false };
 
-    // Outer glow
-    const g = ctx.createRadialGradient(c.x, c.y, radius*.3, c.x, c.y, 32);
-    g.addColorStop(0, glow); g.addColorStop(1, "transparent");
-    ctx.beginPath(); ctx.arc(c.x, c.y, 32, 0, 2*Math.PI); ctx.fillStyle = g; ctx.fill();
-
-    // Main circle
-    ctx.beginPath(); ctx.arc(c.x, c.y, radius, 0, 2*Math.PI);
-    ctx.fillStyle = col;
-    if (isDragged) { ctx.shadowColor = col; ctx.shadowBlur = 20; }
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.closePath();
-
-    // Symbol
-    ctx.fillStyle = "white";
-    ctx.font = `bold ${isDragged?15:13}px Segoe UI`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(c.tipo === "positiva" ? "+" : "−", c.x, c.y);
-
-    // Label
-    ctx.font = "bold 11px Segoe UI";
-    ctx.fillStyle = isDragged ? "#a78bfa" : "#c8c8f0";
-    ctx.textAlign = "left"; ctx.textBaseline = "bottom";
-    ctx.fillText("q" + (i+1), c.x + radius + 4, c.y);
-    ctx.font = "9px Segoe UI";
-    ctx.fillStyle = "#7070a0";
-    ctx.textBaseline = "top";
-    ctx.fillText(formatQ(c.valor), c.x + radius + 4, c.y + 1);
-  });
-}
-
-function drawForceArrows() {
-  cargas.forEach((ci, i) => {
-    let fx = 0, fy = 0;
-    cargas.forEach((cj, j) => {
-      if (i === j) return;
-      const dx = ci.x - cj.x, dy = ci.y - cj.y;
-      const rPx = Math.hypot(dx, dy);
-      if (rPx < 1) return;
-      const r = rPx / SCALE;
-      const F = K * Math.abs(ci.valor * cj.valor) / (r * r);
-      const dir = ci.tipo === cj.tipo ? 1 : -1;
-      fx += dir * F * (dx / rPx);
-      fy += dir * F * (dy / rPx);
-    });
-    const fMag = Math.hypot(fx, fy);
-    if (fMag < 1e-30) return;
-    const aLen = Math.min(65, Math.max(22, 28 + Math.log10(fMag + 1) * 9));
-    const nx = fx / fMag, ny = fy / fMag;
-    drawArrow(ci.x + nx*19, ci.y + ny*19, ci.x + nx*(19+aLen), ci.y + ny*(19+aLen), "#facc15");
-  });
-}
-
-function drawArrow(x1, y1, x2, y2, col) {
-  const a = Math.atan2(y2-y1, x2-x1);
-  ctx.save();
-  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.5;
-  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(x2, y2);
-  ctx.lineTo(x2 - 10*Math.cos(a-.38), y2 - 10*Math.sin(a-.38));
-  ctx.lineTo(x2 - 10*Math.cos(a+.38), y2 - 10*Math.sin(a+.38));
-  ctx.closePath(); ctx.fill();
-  ctx.restore();
-}
-
-function calcularFuerzas() {
-  if (cargas.length < 2) {
-    document.getElementById("resultados").innerHTML = '<p style="color:#4a4a7a;font-size:.73rem">Coloca al menos 2 cargas.</p>';
-    return;
-  }
-  let rows = "";
-  for (let i = 0; i < cargas.length; i++) {
-    for (let j = i+1; j < cargas.length; j++) {
-      const ci = cargas[i], cj = cargas[j];
-      const dx = cj.x - ci.x, dy = cj.y - ci.y;
-      const rPx = Math.hypot(dx, dy), r = rPx / SCALE;
-      const F   = K * Math.abs(ci.valor * cj.valor) / (r * r);
-      const ang = ((Math.atan2(-dy, dx) * 180 / Math.PI) + 360) % 360;
-      const tipo = ci.tipo === cj.tipo
-        ? '<span class="tag-rep">Repulsión</span>'
-        : '<span class="tag-atr">Atracción</span>';
-      rows += `<tr>
-        <td>q${i+1}–q${j+1}</td>
-        <td>${r.toFixed(3)} m</td>
-        <td>${ang.toFixed(1)}°</td>
-        <td>${F.toExponential(3)} N</td>
-        <td>${tipo}</td>
-      </tr>`;
+    function initCamera() {
+      cam.panX = canvas.width / 2;
+      cam.panY = canvas.height / 2;
     }
-  }
-  document.getElementById("resultados").innerHTML = `
+    function S() { return cam.zoom * BASE_SCALE; }   // effective px/m
+    function w2s(wx, wy) { return { x: cam.panX + wx * S(), y: cam.panY - wy * S() }; }
+    function s2w(sx, sy) { return { wx: (sx - cam.panX) / S(), wy: -(sy - cam.panY) / S() }; }
+
+    // ── App state ────────────────────────────────────
+    let cargas = [];   // { wx, wy, valor, tipo, id }
+    let dragging = null;
+    let posMode = 'center';
+    let animFrame = null;
+
+    // ── Formatters ───────────────────────────────────
+    function formatQ(v) {
+      const a = Math.abs(v);
+      if (a >= 1) return v.toFixed(3) + ' C';
+      if (a >= 1e-3) return (v * 1e3).toFixed(2) + ' mC';
+      if (a >= 1e-6) return (v * 1e6).toFixed(2) + ' μC';
+      if (a >= 1e-9) return (v * 1e9).toFixed(2) + ' nC';
+      return v.toExponential(2) + ' C';
+    }
+
+    function formatDist(v) {
+      const a = Math.abs(v), sg = v < 0 ? '−' : '';
+      if (a < 1e-14) return '0 m';
+      if (a >= 1) return sg + a.toPrecision(4) + ' m';
+      if (a >= 0.01) return sg + (a * 100).toPrecision(3) + ' cm';
+      if (a >= 1e-3) return sg + (a * 1e3).toPrecision(3) + ' mm';
+      if (a >= 1e-6) return sg + (a * 1e6).toPrecision(3) + ' μm';
+      if (a >= 1e-9) return sg + (a * 1e9).toPrecision(3) + ' nm';
+      return sg + a.toExponential(2) + ' m';
+    }
+
+    function niceNum(v) {
+      if (Math.abs(v) < 1e-14) return '0';
+      const a = Math.abs(v);
+      if (a >= 1e4 || a < 1e-3) return v.toExponential(1);
+      return parseFloat(v.toPrecision(3)).toString();
+    }
+
+    // ── q1 reference helpers ─────────────────────────
+    function q1pos() {
+      return cargas.length > 0 ? { wx: cargas[0].wx, wy: cargas[0].wy } : { wx: 0, wy: 0 };
+    }
+
+    function chargeRelative(c) {
+      const o = q1pos();
+      const dx = c.wx - o.wx, dy = c.wy - o.wy;
+      return {
+        dx, dy, dist: Math.hypot(dx, dy),
+        angle: ((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360
+      };
+    }
+
+    function placeFromQ1(dist, angleDeg) {
+      const o = q1pos(), r = angleDeg * Math.PI / 180;
+      return { wx: o.wx + dist * Math.cos(r), wy: o.wy + dist * Math.sin(r) };
+    }
+
+    // ── Mode toggle ──────────────────────────────────
+    function setPosMode(m) {
+      posMode = m;
+      document.getElementById('btnModoCenter').classList.toggle('active', m === 'center');
+      document.getElementById('btnModoCoord').classList.toggle('active', m === 'coord');
+      document.getElementById('panelCoord').style.display = m === 'coord' ? 'block' : 'none';
+    }
+
+    // ── Charge CRUD ──────────────────────────────────
+    function agregarCarga() {
+      const v = parseFloat(document.getElementById('valorCarga').value) || 1e-6;
+      const t = document.getElementById('tipoCarga').value;
+      const q = t === 'negativa' ? -Math.abs(v) : Math.abs(v);
+      let wx, wy;
+      if (cargas.length === 0) {
+        wx = 0; wy = 0;
+      } else if (posMode === 'coord') {
+        const d = parseFloat(document.getElementById('inputDist').value) || 1;
+        const a = parseFloat(document.getElementById('inputAngle').value) || 0;
+        const p = placeFromQ1(d, a); wx = p.wx; wy = p.wy;
+      } else {
+        const n = cargas.length;
+        wx = Math.cos(n * 1.2) * n * 0.8; wy = Math.sin(n * 1.2) * n * 0.8;
+      }
+      cargas.push({ wx, wy, valor: q, tipo: t, id: Date.now() });
+      actualizarLista(); dibujar();
+    }
+
+    function eliminarCarga(id) {
+      cargas = cargas.filter(c => c.id !== id);
+      actualizarLista(); dibujar();
+    }
+
+    function limpiar() {
+      cargas = []; actualizarLista();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      document.getElementById('resultados').innerHTML =
+        '<p style="color:#303060;font-size:.72rem">Coloca al menos 2 cargas.</p>';
+    }
+
+    function onEditField(id, field, rawVal) {
+      const idx = cargas.findIndex(c => c.id === id);
+      if (idx <= 0) return;
+      const val = parseFloat(rawVal);
+      if (isNaN(val)) return;
+      let { dist, angle } = chargeRelative(cargas[idx]);
+      if (field === 'dist') dist = Math.max(1e-12, val);
+      if (field === 'angle') angle = ((val % 360) + 360) % 360;
+      const p = placeFromQ1(dist, angle);
+      cargas[idx].wx = p.wx; cargas[idx].wy = p.wy;
+      actualizarListaSilent();
+      if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
+    }
+
+    // ── roundRect polyfill ───────────────────────────
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+        this.moveTo(x + r, y);
+        this.lineTo(x + w - r, y); this.arcTo(x + w, y, x + w, y + r, r);
+        this.lineTo(x + w, y + h - r); this.arcTo(x + w, y + h, x + w - r, y + h, r);
+        this.lineTo(x + r, y + h); this.arcTo(x, y + h, x, y + h - r, r);
+        this.lineTo(x, y + r); this.arcTo(x, y, x + r, y, r);
+        this.closePath();
+      };
+    }
+
+    /* ══════════════════════════════════════════════
+       PARTE 3 — Eventos + zoom + sidebar
+       ══════════════════════════════════════════════ */
+
+    // ── Canvas resize ────────────────────────────────
+    function resizeCanvas() {
+      const wr = canvas.parentElement;
+      canvas.width = wr.clientWidth;
+      canvas.height = wr.clientHeight;
+      if (!cam._init) { initCamera(); cam._init = true; }
+      dibujar();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // ── Zoom helpers ─────────────────────────────────
+    function zoomBy(factor, cx, cy) {
+      if (cx == null) { cx = canvas.width / 2; cy = canvas.height / 2; }
+      cam.panX = cx + (cam.panX - cx) * factor;
+      cam.panY = cy + (cam.panY - cy) * factor;
+      cam.zoom = Math.max(0.00005, Math.min(200000, cam.zoom * factor));
+      updateZoomHUD();
+      if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
+    }
+
+    function resetView() { initCamera(); cam.zoom = 1; updateZoomHUD(); dibujar(); }
+
+    function fitAll() {
+      if (cargas.length === 0) { resetView(); return; }
+      if (cargas.length === 1) {
+        const p = w2s(cargas[0].wx, cargas[0].wy);
+        cam.panX += canvas.width / 2 - p.x;
+        cam.panY += canvas.height / 2 - p.y;
+        updateZoomHUD(); dibujar(); return;
+      }
+      const xs = cargas.map(c => c.wx), ys = cargas.map(c => c.wy);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs);
+      const y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const pad = 0.38;
+      const zx = canvas.width / ((x1 - x0 || 0.001) * BASE_SCALE * (1 + 2 * pad));
+      const zy = canvas.height / ((y1 - y0 || 0.001) * BASE_SCALE * (1 + 2 * pad));
+      cam.zoom = Math.max(0.00005, Math.min(200000, Math.min(zx, zy)));
+      cam.panX = canvas.width / 2 - (x0 + x1) / 2 * cam.zoom * BASE_SCALE;
+      cam.panY = canvas.height / 2 + (y0 + y1) / 2 * cam.zoom * BASE_SCALE;
+      updateZoomHUD(); dibujar();
+    }
+
+    function updateZoomHUD() {
+      const el = document.getElementById('zoomLevel');
+      const si = document.getElementById('sinfo');
+      if (!el) return;
+      const z = cam.zoom;
+      el.textContent = z >= 100 ? z.toFixed(0) + '×' : z >= 1 ? z.toFixed(2) + '×' : z.toPrecision(2) + '×';
+      if (si) si.textContent = formatDist(100 / S()) + '/100px';
+    }
+
+    // ── Keyboard shortcuts ───────────────────────────
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === '+' || e.key === '=') zoomBy(1.5);
+      if (e.key === '-') zoomBy(1 / 1.5);
+      if (e.key === '0') resetView();
+      if (e.key === 'f' || e.key === 'F') fitAll();
+    });
+
+    // ── Pointer helpers ──────────────────────────────
+    function getPos(e) {
+      const r = canvas.getBoundingClientRect(), src = e.touches ? e.touches[0] : e;
+      return { x: src.clientX - r.left, y: src.clientY - r.top };
+    }
+    function hitTest(sx, sy) {
+      for (let i = cargas.length - 1; i >= 0; i--) {
+        const p = w2s(cargas[i].wx, cargas[i].wy);
+        if (Math.hypot(sx - p.x, sy - p.y) <= 20) return cargas[i];
+      }
+      return null;
+    }
+
+    // ── Mouse ────────────────────────────────────────
+    canvas.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      const { x, y } = getPos(e), hit = hitTest(x, y);
+      dragging = hit
+        ? { type: 'charge', charge: hit }
+        : { type: 'pan', mx0: x, my0: y, px0: cam.panX, py0: cam.panY };
+      canvas.classList.replace('grab', 'grabbing');
+      if (hit) setHint('🟡 Arrastrando q' + (cargas.indexOf(hit) + 1), true);
+      e.preventDefault();
+    });
+
+    canvas.addEventListener('mousemove', e => {
+      const { x, y } = getPos(e);
+      if (!dragging) { canvas.style.cursor = hitTest(x, y) ? 'grab' : 'default'; return; }
+      if (dragging.type === 'charge') {
+        const w = s2w(x, y);
+        dragging.charge.wx = w.wx; dragging.charge.wy = w.wy;
+        actualizarListaSilent();
+      } else {
+        cam.panX = dragging.px0 + (x - dragging.mx0);
+        cam.panY = dragging.py0 + (y - dragging.my0);
+      }
+      if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
+    });
+
+    canvas.addEventListener('mouseup', stopDrag);
+    canvas.addEventListener('mouseleave', stopDrag);
+
+    function stopDrag() {
+      if (!dragging) return;
+      const wasCharge = dragging.type === 'charge';
+      dragging = null;
+      canvas.classList.replace('grabbing', 'grab');
+      canvas.style.cursor = '';
+      setHint('☝ Arrastra cargas · espacio vacío = mover vista', false);
+      if (wasCharge) actualizarLista();
+    }
+    function setHint(txt, on) {
+      const el = document.getElementById('dragHint');
+      el.textContent = txt; el.classList.toggle('active-drag', on);
+    }
+
+    // ── Wheel zoom ───────────────────────────────────
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const { x, y } = getPos(e);
+      zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12, x, y);
+    }, { passive: false });
+
+    // ── Touch (drag + pinch) ─────────────────────────
+    let _ptDist = null;
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        const t = e.touches;
+        _ptDist = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        dragging = null; e.preventDefault(); return;
+      }
+      const { x, y } = getPos(e), hit = hitTest(x, y);
+      dragging = hit
+        ? { type: 'charge', charge: hit }
+        : { type: 'pan', mx0: x, my0: y, px0: cam.panX, py0: cam.panY };
+      e.preventDefault();
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', e => {
+      if (e.touches.length === 2) {
+        const t = e.touches;
+        const nd = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+        if (_ptDist) {
+          const r = canvas.getBoundingClientRect();
+          zoomBy(nd / _ptDist, (t[0].clientX + t[1].clientX) / 2 - r.left,
+            (t[0].clientY + t[1].clientY) / 2 - r.top);
+        }
+        _ptDist = nd; e.preventDefault(); return;
+      }
+      if (!dragging) return;
+      const { x, y } = getPos(e);
+      if (dragging.type === 'charge') {
+        const w = s2w(x, y); dragging.charge.wx = w.wx; dragging.charge.wy = w.wy;
+        actualizarListaSilent();
+      } else {
+        cam.panX = dragging.px0 + (x - dragging.mx0);
+        cam.panY = dragging.py0 + (y - dragging.my0);
+      }
+      if (!animFrame) animFrame = requestAnimationFrame(() => { dibujar(); animFrame = null; });
+      e.preventDefault();
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { _ptDist = null; stopDrag(); });
+
+    // ── Sidebar ──────────────────────────────────────
+    function actualizarLista() {
+      document.getElementById('numCargas').textContent = cargas.length;
+      const cont = document.getElementById('listaCargas');
+      cont.innerHTML = '';
+      cargas.forEach((c, i) => {
+        const col = c.tipo === 'positiva' ? '#ef4444' : '#3b82f6';
+        const isQ1 = i === 0, isDrag = dragging?.charge === c;
+        const div = document.createElement('div');
+        div.className = 'charge-item' + (isQ1 ? ' is-q1' : '') + (isDrag ? ' drag-active' : '');
+        div.innerHTML = `
+      <div class="charge-header">
+        <div class="charge-dot" style="background:${col};box-shadow:0 0 6px ${col}60"></div>
+        <span class="charge-name">q${i + 1}${isQ1 ? ` <span class="q1-badge">ORIGEN</span>` : ''}</span>
+        <span class="charge-sign" style="color:${col}">${c.tipo === 'positiva' ? '(+)' : '(−)'}</span>
+        <span class="charge-qval">${formatQ(c.valor)}</span>
+        <button class="charge-del" onclick="eliminarCarga(${c.id})">✕</button>
+      </div>`;
+        if (isQ1) {
+          const d = document.createElement('div');
+          d.className = 'charge-q1-pos';
+          d.textContent = `Pos: (${c.wx.toFixed(5)}, ${c.wy.toFixed(5)}) m`;
+          div.appendChild(d);
+        } else {
+          const { dx, dy, dist, angle } = chargeRelative(c);
+          const f = document.createElement('div');
+          f.className = 'charge-fields';
+          f.innerHTML = `
+        <div>
+          <label>Dist. desde q1 (m)</label>
+          <input type="number" data-field="dist" step="any" min="1e-12"
+            value="${dist.toPrecision(6)}"
+            oninput="onEditField(${c.id},'dist',this.value)"
+            onchange="onEditField(${c.id},'dist',this.value)">
+        </div>
+        <div>
+          <label>Ángulo (°)</label>
+          <input type="number" data-field="angle" step="0.01" min="0" max="360"
+            value="${angle.toFixed(3)}"
+            oninput="onEditField(${c.id},'angle',this.value)"
+            onchange="onEditField(${c.id},'angle',this.value)">
+        </div>
+        <div class="delta-row">
+          <span style="color:#ef9999">Δx = ${formatDist(dx)}</span>
+          <span style="color:#99ef99">Δy = ${formatDist(dy)}</span>
+        </div>`;
+          div.appendChild(f);
+        }
+        cont.appendChild(div);
+      });
+    }
+
+    function actualizarListaSilent() {
+      document.getElementById('numCargas').textContent = cargas.length;
+      const focused = document.activeElement;
+      document.querySelectorAll('#listaCargas .charge-item').forEach((item, i) => {
+        const c = cargas[i]; if (!c) return;
+        if (i === 0) {
+          const p = item.querySelector('.charge-q1-pos');
+          if (p) p.textContent = `Pos: (${c.wx.toFixed(5)}, ${c.wy.toFixed(5)}) m`;
+          return;
+        }
+        const { dx, dy, dist, angle } = chargeRelative(c);
+        item.querySelectorAll('input[data-field]').forEach(inp => {
+          if (inp === focused) return;
+          inp.value = inp.dataset.field === 'dist' ? dist.toPrecision(6) : angle.toFixed(3);
+        });
+        const sp = item.querySelectorAll('.delta-row span');
+        if (sp[0]) sp[0].textContent = 'Δx = ' + formatDist(dx);
+        if (sp[1]) sp[1].textContent = 'Δy = ' + formatDist(dy);
+      });
+    }
+
+    /* ══════════════════════════════════════════════
+       PARTE 4 — Dibujo + física
+       ══════════════════════════════════════════════ */
+
+    function dibujar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawGrid();
+      if (cargas.length >= 1) drawAxesQ1();
+      if (cargas.length >= 2) {
+        drawConnections();
+        drawAngleViz();
+        drawForceArrows();
+        calcularFuerzas();
+      }
+      drawCharges();
+      updateZoomHUD();
+    }
+
+    // ── Cuadrícula adaptativa ────────────────────────
+    function drawGrid() {
+      const s = S();
+      let ws = 60 / s;
+      const mg = Math.pow(10, Math.floor(Math.log10(ws || 1)));
+      const n = ws / (mg || 1);
+      ws = n < 1.5 ? mg : n < 3.5 ? 2 * mg : n < 7.5 ? 5 * mg : 10 * mg;
+      const ss = ws * s;
+      ctx.save();
+      ctx.font = '9px Segoe UI';
+
+      // Vertical
+      for (let x = cam.panX % ss - ss; x < canvas.width + ss; x += ss) {
+        const wx = (x - cam.panX) / s;
+        const isO = Math.abs(wx) < ws * 0.01;
+        ctx.strokeStyle = isO ? 'rgba(130,120,220,0.22)' : 'rgba(80,80,160,0.07)';
+        ctx.lineWidth = isO ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        if (ss > 26 && !isO) {
+          ctx.fillStyle = 'rgba(80,80,140,0.5)';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+          ctx.fillText(niceNum(wx), x, 4);
+        }
+      }
+      // Horizontal
+      for (let y = cam.panY % ss - ss; y < canvas.height + ss; y += ss) {
+        const wy = -(y - cam.panY) / s;
+        const isO = Math.abs(wy) < ws * 0.01;
+        ctx.strokeStyle = isO ? 'rgba(130,120,220,0.22)' : 'rgba(80,80,160,0.07)';
+        ctx.lineWidth = isO ? 1.5 : 1;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        if (ss > 26 && !isO) {
+          ctx.fillStyle = 'rgba(80,80,140,0.5)';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          ctx.fillText(niceNum(wy), 4, y);
+        }
+      }
+      ctx.fillStyle = 'rgba(60,60,110,0.6)';
+      ctx.font = '8px Segoe UI'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText('[m]', canvas.width - 4, canvas.height - 4);
+      ctx.restore();
+    }
+
+    // ── Ejes cartesianos desde q1 ────────────────────
+    function drawAxesQ1() {
+      const o = w2s(cargas[0].wx, cargas[0].wy);
+      const ex = Math.max(canvas.width, canvas.height) * 1.6;
+      ctx.save();
+      ctx.lineWidth = 1.2; ctx.setLineDash([8, 6]);
+      ctx.strokeStyle = 'rgba(239,80,80,0.4)';
+      ctx.beginPath(); ctx.moveTo(o.x - ex, o.y); ctx.lineTo(o.x + ex, o.y); ctx.stroke();
+      ctx.strokeStyle = 'rgba(80,210,80,0.4)';
+      ctx.beginPath(); ctx.moveTo(o.x, o.y - ex); ctx.lineTo(o.x, o.y + ex); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = 'bold 11px Segoe UI';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = 'rgba(239,100,100,0.75)'; ctx.fillText('+X', o.x + 16, o.y - 4);
+      ctx.fillStyle = 'rgba(80,210,80,0.75)'; ctx.fillText('+Y', o.x + 6, o.y - 20);
+      ctx.strokeStyle = 'rgba(130,100,220,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(o.x, o.y, 24, 0, 2 * Math.PI); ctx.stroke();
+      ctx.restore();
+    }
+
+    // ── Visualización de ángulo (mejorada) ───────────
+    function drawAngleViz() {
+      if (cargas.length < 2) return;
+      const q1 = cargas[0], oS = w2s(q1.wx, q1.wy), s = S();
+      cargas.forEach((c, i) => {
+        if (i === 0) return;
+        const cS = w2s(c.wx, c.wy);
+        const { dx, dy, dist, angle } = chargeRelative(c);
+        if (dist < 1e-14) return;
+        const dPx = dist * s, arcR = Math.min(dPx * 0.32, 58);
+        const endA = -angle * Math.PI / 180;           // canvas (Y invertido, siempre anticlockwise)
+        ctx.save();
+
+        // ── 1. Líneas de proyección ──────────────────
+        const crnS = w2s(c.wx, q1.wy);             // esquina: mismo X que c, mismo Y que q1
+
+        ctx.lineWidth = 1.3; ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = 'rgba(239,100,100,0.5)'; // Δx — horizontal
+        ctx.beginPath(); ctx.moveTo(oS.x, oS.y); ctx.lineTo(crnS.x, crnS.y); ctx.stroke();
+        ctx.strokeStyle = 'rgba(80,210,80,0.5)';   // Δy — vertical
+        ctx.beginPath(); ctx.moveTo(crnS.x, crnS.y); ctx.lineTo(cS.x, cS.y); ctx.stroke();
+        ctx.setLineDash([]);
+
+        // ── 2. Cuadro de ángulo recto ────────────────
+        //   signX: desde la esquina hacia q1 en pantalla
+        //   signY: desde la esquina hacia la carga en pantalla (Y invertido)
+        const sz = Math.max(4, Math.min(12, dPx * 0.055));
+        const sgX = dx >= 0 ? -1 : 1;
+        const sgY = dy >= 0 ? -1 : 1;
+        ctx.strokeStyle = 'rgba(200,190,80,0.55)'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(crnS.x + sgX * sz, crnS.y);
+        ctx.lineTo(crnS.x + sgX * sz, crnS.y + sgY * sz);
+        ctx.lineTo(crnS.x, crnS.y + sgY * sz);
+        ctx.stroke();
+
+        // ── 3. Sector de ángulo ──────────────────────
+        if (arcR > 5 && angle > 0.02 && angle < 359.98) {
+          ctx.beginPath();
+          ctx.moveTo(oS.x, oS.y);
+          ctx.arc(oS.x, oS.y, arcR, 0, endA, true);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(250,204,21,0.09)'; ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(oS.x, oS.y, arcR, 0, endA, true);
+          ctx.strokeStyle = 'rgba(250,204,21,0.85)'; ctx.lineWidth = 1.8; ctx.stroke();
+
+          // Marca de referencia en 0°
+          ctx.strokeStyle = 'rgba(250,204,21,0.38)'; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(oS.x + arcR - 5, oS.y); ctx.lineTo(oS.x + arcR + 5, oS.y); ctx.stroke();
+        }
+
+        // ── 4. Etiqueta del ángulo con fondo pill ────
+        if (arcR > 4) {
+          const midR = (angle / 2) * Math.PI / 180;
+          const lr = arcR + (arcR < 28 ? 17 : 21);
+          const lx = oS.x + lr * Math.cos(midR);
+          const ly = oS.y - lr * Math.sin(midR);
+          ctx.font = 'bold 11px Segoe UI';
+          const txt = angle.toFixed(2) + '°', tw = ctx.measureText(txt).width;
+          ctx.beginPath();
+          ctx.roundRect(lx - tw / 2 - 5, ly - 8, tw + 10, 16, 4);
+          ctx.fillStyle = 'rgba(10,10,26,0.85)'; ctx.fill();
+          ctx.strokeStyle = 'rgba(250,204,21,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+          ctx.fillStyle = '#facc15';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(txt, lx, ly);
+        }
+
+        // ── 5. Etiquetas Δx y Δy ────────────────────
+        if (dPx > 38) {
+          ctx.font = '9.5px Segoe UI'; ctx.textBaseline = 'middle';
+
+          // Δx  — sobre/bajo la línea horizontal
+          ctx.fillStyle = 'rgba(239,150,150,0.92)';
+          ctx.textAlign = 'center';
+          ctx.fillText('Δx=' + formatDist(dx),
+            (oS.x + crnS.x) / 2,
+            oS.y + (dy >= 0 ? -11 : 12));
+
+          // Δy  — a la derecha/izquierda de la línea vertical
+          ctx.fillStyle = 'rgba(130,230,130,0.92)';
+          ctx.textAlign = dx >= 0 ? 'left' : 'right';
+          ctx.fillText('Δy=' + formatDist(dy),
+            crnS.x + (dx >= 0 ? 7 : -7),
+            (crnS.y + cS.y) / 2);
+        }
+
+        // ── 6. Distancia directa q1→qi ──────────────
+        if (dPx > 60) {
+          const ar = angle * Math.PI / 180;
+          // Perpendicular offset para no solapar con las proyecciones
+          const px = (oS.x + cS.x) / 2 + 11 * Math.sin(ar);
+          const py = (oS.y + cS.y) / 2 + 11 * Math.cos(ar);
+          ctx.font = 'bold 9px Segoe UI';
+          ctx.fillStyle = 'rgba(180,180,255,0.72)';
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('r=' + formatDist(dist), px, py);
+        }
+
+        ctx.restore();
+      });
+    }
+
+    // ── Líneas de conexión entre pares ───────────────
+    function drawConnections() {
+      for (let i = 0; i < cargas.length; i++) {
+        for (let j = i + 1; j < cargas.length; j++) {
+          const a = w2s(cargas[i].wx, cargas[i].wy);
+          const b = w2s(cargas[j].wx, cargas[j].wy);
+          const same = cargas[i].tipo === cargas[j].tipo;
+          ctx.save();
+          ctx.setLineDash([4, 5]);
+          ctx.strokeStyle = same ? 'rgba(239,68,68,0.2)' : 'rgba(52,211,153,0.2)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
+
+    // ── Círculos de carga ────────────────────────────
+    function drawCharges() {
+      cargas.forEach((c, i) => {
+        const sp = w2s(c.wx, c.wy);
+        const col = c.tipo === 'positiva' ? '#ef4444' : '#3b82f6';
+        const glow = c.tipo === 'positiva' ? 'rgba(239,68,68,0.38)' : 'rgba(59,130,246,0.38)';
+        const drag = dragging?.charge === c, r = drag ? 17 : 14;
+        const g = ctx.createRadialGradient(sp.x, sp.y, r * .3, sp.x, sp.y, 33);
+        g.addColorStop(0, glow); g.addColorStop(1, 'transparent');
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 33, 0, 2 * Math.PI);
+        ctx.fillStyle = g; ctx.fill();
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, r, 0, 2 * Math.PI);
+        ctx.fillStyle = col;
+        if (drag) { ctx.shadowColor = col; ctx.shadowBlur = 22; }
+        ctx.fill(); ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${drag ? 15 : 13}px Segoe UI`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(c.tipo === 'positiva' ? '+' : '−', sp.x, sp.y);
+        ctx.font = 'bold 11px Segoe UI';
+        ctx.fillStyle = drag ? '#a78bfa' : '#c0c0e0';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+        ctx.fillText('q' + (i + 1), sp.x + r + 4, sp.y);
+        ctx.font = '9px Segoe UI'; ctx.fillStyle = '#606090';
+        ctx.textBaseline = 'top';
+        ctx.fillText(formatQ(c.valor), sp.x + r + 4, sp.y + 1);
+      });
+    }
+
+    // ── Flechas de fuerza resultante ─────────────────
+    function drawForceArrows() {
+      cargas.forEach(ci => {
+        let fx = 0, fy = 0;
+        cargas.forEach(cj => {
+          if (ci === cj) return;
+          const ddx = ci.wx - cj.wx, ddy = ci.wy - cj.wy;
+          const r = Math.hypot(ddx, ddy); if (r < 1e-14) return;
+          const F = K * Math.abs(ci.valor * cj.valor) / (r * r);
+          const d = ci.tipo === cj.tipo ? 1 : -1;
+          fx += d * F * (ddx / r); fy += d * F * (ddy / r);
+        });
+        const fm = Math.hypot(fx, fy); if (fm < 1e-30) return;
+        const al = Math.min(65, Math.max(22, 28 + Math.log10(fm + 1) * 9));
+        const nx = fx / fm, ny = fy / fm;
+        const sp = w2s(ci.wx, ci.wy);
+        drawArrow(sp.x + nx * 19, sp.y - ny * 19,
+          sp.x + nx * (19 + al), sp.y - ny * (19 + al), '#facc15');
+      });
+    }
+
+    function drawArrow(x1, y1, x2, y2, col) {
+      const a = Math.atan2(y2 - y1, x2 - x1);
+      ctx.save();
+      ctx.strokeStyle = ctx.fillStyle = col; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - 10 * Math.cos(a - .38), y2 - 10 * Math.sin(a - .38));
+      ctx.lineTo(x2 - 10 * Math.cos(a + .38), y2 - 10 * Math.sin(a + .38));
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    // ── Tabla de fuerzas ─────────────────────────────
+    function calcularFuerzas() {
+      if (cargas.length < 2) {
+        document.getElementById('resultados').innerHTML =
+          '<p style="color:#303060;font-size:.72rem">Coloca al menos 2 cargas.</p>';
+        return;
+      }
+      let rows = '';
+      for (let i = 0; i < cargas.length; i++) {
+        for (let j = i + 1; j < cargas.length; j++) {
+          const ci = cargas[i], cj = cargas[j];
+          const ddx = cj.wx - ci.wx, ddy = cj.wy - ci.wy;
+          const r = Math.hypot(ddx, ddy); if (r < 1e-14) continue;
+          const F = K * Math.abs(ci.valor * cj.valor) / (r * r);
+          const ang = ((Math.atan2(ddy, ddx) * 180 / Math.PI) + 360) % 360;
+          const typ = ci.tipo === cj.tipo
+            ? '<span class="tag-rep">Repulsión</span>'
+            : '<span class="tag-atr">Atracción</span>';
+          rows += `<tr>
+        <td>q${i + 1}–q${j + 1}</td>
+        <td>${formatDist(r)}</td>
+        <td>${ang.toFixed(2)}°</td>
+        <td>${F.toExponential(3)} N</td>
+        <td>${typ}</td></tr>`;
+        }
+      }
+      document.getElementById('resultados').innerHTML = `
     <table class="result-table">
       <thead><tr><th>Par</th><th>Dist.</th><th>Ángulo</th><th>Fuerza</th><th>Tipo</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
-}
-</script>
+    }
+
+    // ── Arranque ──────────────────────────────────────
+    resizeCanvas();
+  </script>
 </body>
 </html>
