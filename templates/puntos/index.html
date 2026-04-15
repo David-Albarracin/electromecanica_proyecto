@@ -3,7 +3,17 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador Electromagnético</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EM Simulator</title>
+  <meta name="description" content="Simulador interactivo de electromagnetismo — Ley de Coulomb y Campo Eléctrico">
+  <meta name="theme-color" content="#0a0a18">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml"   href="{% static 'puntos/favicon/favicon.svg' %}">
+  <link rel="icon" type="image/png" sizes="96x96" href="{% static 'puntos/favicon/favicon-96x96.png' %}">
+  <link rel="shortcut icon"               href="{% static 'puntos/favicon/favicon.ico' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'puntos/favicon/apple-touch-icon.png' %}">
+  <link rel="manifest"                    href="{% static 'puntos/favicon/site.webmanifest' %}">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -389,7 +399,7 @@
 <body>
 
   <header>
-    <h1>⚡ Simulador Electromagnético</h1>
+    <h1>⚡ EM Simulator</h1>
     <div class="formula-badges">
       <span class="formula">F = k · q₁q₂ / r²</span>
       <span class="formula efield">E = k · q / r²</span>
