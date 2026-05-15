@@ -4,508 +4,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EM Simulator</title>
-  <meta name="description" content="Simulador interactivo de electromagnetismo — Ley de Coulomb y Campo Eléctrico">
-  <meta name="theme-color" content="#0a0a18">
+  <title>EM Simulator — Coulomb & Campo Eléctrico</title>
+  <meta name="description" content="Simulador profesional de Ley de Coulomb, campo eléctrico, suma vectorial y análisis geométrico">
+  <meta name="theme-color" content="#070716">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml"   href="{% static 'puntos/favicon/favicon.svg' %}">
+  <link rel="icon" type="image/svg+xml" href="{% static 'puntos/favicon/favicon.svg' %}">
   <link rel="icon" type="image/png" sizes="96x96" href="{% static 'puntos/favicon/favicon-96x96.png' %}">
-  <link rel="shortcut icon"               href="{% static 'puntos/favicon/favicon.ico' %}">
+  <link rel="shortcut icon" href="{% static 'puntos/favicon/favicon.ico' %}">
   <link rel="apple-touch-icon" sizes="180x180" href="{% static 'puntos/favicon/apple-touch-icon.png' %}">
-  <link rel="manifest"                    href="{% static 'puntos/favicon/site.webmanifest' %}">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+  <link rel="manifest" href="{% static 'puntos/favicon/site.webmanifest' %}">
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0a0a18;
-      color: #e0e0f0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    header {
-      background: linear-gradient(90deg, #12123a, #1e1050);
-      padding: 9px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid #2a2060;
-      flex-shrink: 0;
-    }
-
-    header h1 {
-      font-size: 1.05rem;
-      font-weight: 700;
-      background: linear-gradient(90deg, #a78bfa, #60a5fa, #34d399);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .formula-badges { display: flex; gap: 6px; flex-wrap: wrap; }
-
-    .formula {
-      font-size: .7rem;
-      color: #6050a0;
-      background: #14143a;
-      padding: 2px 10px;
-      border-radius: 20px;
-      border: 1px solid #2a2060;
-    }
-
-    .formula.efield { border-color: #1e4060; color: #4080a0; }
-
-    /* ── WORKSPACE ── */
-    .workspace { display: flex; flex: 1; overflow: hidden; }
-
-    /* ── PANEL ── */
-    .panel {
-      width: 282px;
-      background: #0e0e28;
-      border-right: 1px solid #1e1e40;
-      display: flex;
-      flex-direction: column;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-
-    .panel::-webkit-scrollbar { width: 4px; }
-    .panel::-webkit-scrollbar-thumb { background: #2a2060; border-radius: 4px; }
-
-    .section { padding: 11px 12px; border-bottom: 1px solid #161630; }
-
-    .section-title {
-      font-size: .6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.8px;
-      color: #5a4a9a;
-      margin-bottom: 9px;
-    }
-
-    .section-title.efield-title { color: #2a6a9a; }
-
-    label {
-      display: block;
-      font-size: .7rem;
-      color: #8080b0;
-      margin-bottom: 3px;
-      margin-top: 7px;
-    }
-
-    label:first-of-type { margin-top: 0; }
-
-    input[type=number], select {
-      width: 100%;
-      padding: 6px 9px;
-      background: #181838;
-      border: 1px solid #2a2060;
-      border-radius: 6px;
-      color: #d0d0f0;
-      font-size: .77rem;
-      outline: none;
-      transition: border .2s;
-    }
-
-    input[type=number]:focus, select:focus { border-color: #6050a0; }
-    select option { background: #181838; }
-
-    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-
-    .btn-add {
-      width: 100%;
-      padding: 8px;
-      background: linear-gradient(135deg, #4c1d95, #1e3a8a);
-      border: none;
-      border-radius: 7px;
-      color: white;
-      font-weight: 700;
-      font-size: .8rem;
-      cursor: pointer;
-      transition: all .2s;
-      font-family: inherit;
-      margin-top: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-
-    .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(76,29,149,.5); }
-
-    .btn-danger {
-      width: 100%;
-      padding: 7px;
-      background: transparent;
-      border: 1px solid #5a1010;
-      border-radius: 7px;
-      color: #fca5a5;
-      font-size: .72rem;
-      cursor: pointer;
-      transition: background .2s;
-      font-family: inherit;
-      margin-top: 5px;
-    }
-
-    .btn-danger:hover { background: #1a0808; }
-
-    /* charge cards */
-    .charge-item {
-      background: #141432;
-      border-radius: 8px;
-      margin-bottom: 6px;
-      border: 1px solid #1e1e40;
-      transition: border-color .2s;
-      overflow: hidden;
-    }
-
-    .charge-item.is-q1  { border-color: #5040a055; }
-    .charge-item.drag-active { border-color: #a78bfa; background: #1a1848; }
-
-    .charge-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 7px 8px;
-    }
-
-    .charge-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-    .charge-name { font-weight: 700; font-size: .73rem; color: #d0d0f0; }
-
-    .q1-badge {
-      display: inline-block;
-      background: #4c1d9540;
-      border: 1px solid #6050a055;
-      border-radius: 4px;
-      padding: 1px 5px;
-      font-size: .58rem;
-      color: #a78bfa;
-      margin-left: 3px;
-    }
-
-    .charge-sign { font-size: .67rem; color: #8080a0; }
-    .charge-qval { font-size: .64rem; color: #505080; margin-left: auto; margin-right: 2px; }
-
-    .charge-del {
-      background: none;
-      border: none;
-      color: #5a1010;
-      cursor: pointer;
-      font-size: .88rem;
-      padding: 0 2px;
-      transition: color .2s;
-      flex-shrink: 0;
-    }
-
-    .charge-del:hover { color: #ef4444; }
-
-    .charge-fields {
-      padding: 0 8px 8px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-    }
-
-    .charge-fields label { font-size: .62rem; color: #505080; margin: 0 0 2px; }
-    .charge-fields input { padding: 5px 7px; font-size: .74rem; }
-
-    .delta-row {
-      grid-column: 1/-1;
-      display: flex;
-      gap: 10px;
-      font-size: .65rem;
-      color: #606080;
-      padding-top: 3px;
-      flex-wrap: wrap;
-    }
-
-    .charge-q1-pos { padding: 0 8px 7px; font-size: .64rem; color: #3a3a6a; }
-
-    /* results */
-    .result-table { width: 100%; border-collapse: collapse; font-size: .65rem; }
-
-    .result-table th {
-      background: #141432;
-      padding: 4px 5px;
-      text-align: left;
-      color: #5a4a9a;
-      font-weight: 600;
-      border-bottom: 1px solid #1e1e40;
-    }
-
-    .result-table td { padding: 4px 5px; border-bottom: 1px solid #161630; color: #b0b0d0; }
-    .result-table tr:hover td { background: #141432; }
-    .tag-rep { color: #f87171; font-weight: 600; }
-    .tag-atr { color: #34d399; font-weight: 600; }
-
-    .result-table.efield-table th { color: #2a7aaa; }
-
-    /* ── Canvas area ── */
-    .canvas-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-    .canvas-toolbar {
-      padding: 5px 12px;
-      background: #0e0e28;
-      border-bottom: 1px solid #1e1e40;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: .69rem;
-      color: #5a4a9a;
-      flex-shrink: 0;
-      flex-wrap: wrap;
-    }
-
-    .hint {
-      padding: 3px 8px;
-      background: #141432;
-      border-radius: 20px;
-      border: 1px solid #1e1e40;
-      white-space: nowrap;
-    }
-
-    .hint.active-drag { border-color: #a78bfa; color: #a78bfa; }
-
-    /* toggle buttons */
-    .toggle-btn {
-      padding: 4px 10px;
-      background: #141432;
-      border: 1px solid #2a2060;
-      border-radius: 6px;
-      color: #6060a0;
-      font-size: .68rem;
-      cursor: pointer;
-      font-family: inherit;
-      transition: all .2s;
-      white-space: nowrap;
-    }
-
-    .toggle-btn:hover { border-color: #5040a0; color: #a090e0; }
-
-    .toggle-btn.active {
-      background: linear-gradient(135deg, #0e2a4a, #0a1a3a);
-      border-color: #2060a0;
-      color: #60b0e0;
-    }
-
-    /* zoom controls */
-    .zoom-controls { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-
-    .zbtn {
-      width: 24px;
-      height: 24px;
-      background: #141432;
-      border: 1px solid #2a2060;
-      border-radius: 6px;
-      color: #9090c0;
-      font-size: .9rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all .15s;
-      font-family: inherit;
-      line-height: 1;
-      padding: 0;
-    }
-
-    .zbtn:hover { background: #1e1e50; border-color: #6050a0; color: #e0e0f0; }
-
-    .zlevel {
-      font-size: .72rem;
-      color: #a78bfa;
-      background: #141432;
-      border: 1px solid #2a2060;
-      border-radius: 6px;
-      padding: 3px 7px;
-      min-width: 52px;
-      text-align: center;
-      font-weight: 700;
-    }
-
-    .sinfo { font-size: .63rem; color: #404068; white-space: nowrap; }
-
-    /* mode toggle */
-    .mode-toggle {
-      display: flex;
-      background: #141432;
-      border-radius: 7px;
-      border: 1px solid #2a2060;
-      overflow: hidden;
-      margin-bottom: 8px;
-    }
-
-    .mode-btn {
-      flex: 1;
-      padding: 6px;
-      font-size: .69rem;
-      cursor: pointer;
-      border: none;
-      background: transparent;
-      color: #5a4a9a;
-      transition: all .2s;
-      font-family: inherit;
-    }
-
-    .mode-btn.active {
-      background: linear-gradient(135deg, #2e1065, #1e3a8a);
-      color: #e0e0f0;
-      font-weight: 600;
-    }
-
-    .canvas-wrapper {
-      flex: 1;
-      position: relative;
-      overflow: hidden;
-      background: radial-gradient(ellipse at 40% 45%, #0e0e2a, #06060f);
-    }
-
-    canvas { display: block; width: 100%; height: 100%; }
-    canvas.grab    { cursor: grab; }
-    canvas.grabbing { cursor: grabbing; }
-
-    .info-badge {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #0e0e28cc;
-      border: 1px solid #1e1e40;
-      border-radius: 8px;
-      padding: 7px 11px;
-      font-size: .67rem;
-      color: #5a4a9a;
-      pointer-events: none;
-      backdrop-filter: blur(6px);
-    }
-
-    .info-badge strong { color: #a78bfa; display: block; margin-bottom: 2px; font-size: .69rem; }
-    .info-badge .efield-const { color: #2a7aaa; margin-top: 4px; display: block; }
-
-    /* Hint de teclado E */
-    .key-hint {
-      font-size: .6rem;
-      color: #3a3a6a;
-      padding: 2px 6px;
-      background: #0e0e22;
-      border: 1px solid #1a1a40;
-      border-radius: 4px;
-    }
-  </style>
+  <link rel="stylesheet" href="{% static 'puntos/css/main.css' %}">
 </head>
 
 <body>
 
   <header>
-    <h1>⚡ EM Simulator</h1>
-    <div class="formula-badges">
-      <span class="formula">F = k · q₁q₂ / r²</span>
-      <span class="formula efield">E = k · q / r²</span>
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <span>EM Simulator</span>
+    </div>
+
+    <div class="mode-switch">
+      <button data-mode-btn="force" class="active" title="Tecla 1">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M5 12h14M13 6l6 6-6 6"/>
+        </svg>
+        Fuerza
+      </button>
+      <button data-mode-btn="efield" title="Tecla 2">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M13 2L4 14h7l-2 8 9-12h-7l2-8z"/>
+        </svg>
+        Campo E
+      </button>
+    </div>
+
+    <div class="formula-strip">
+      <span class="formula f-active">F = k · |q₁q₂| / r²</span>
+      <span class="formula e-active">E = k · q / r²</span>
+      <span class="formula">k = 8.99×10⁹</span>
     </div>
   </header>
 
   <div class="workspace">
 
-    <!-- ── PANEL LATERAL ── -->
-    <div class="panel">
+    <aside class="panel-left">
 
       <div class="section">
         <div class="section-title">Nueva carga</div>
-        <label>Valor (C)</label>
-        <input type="number" id="valorCarga" step="any" value="0.000001">
-        <label>Tipo</label>
-        <select id="tipoCarga">
-          <option value="positiva">Positiva (+)</option>
-          <option value="negativa">Negativa (−)</option>
-        </select>
-
-        <div class="mode-toggle" style="margin-top:9px">
-          <button class="mode-btn active" id="btnModoCenter">⊕ Centro</button>
-          <button class="mode-btn"        id="btnModoCoord">📐 Coord.</button>
-        </div>
-
-        <div id="panelCoord" style="display:none">
-          <div class="row2">
-            <div>
-              <label>Dist. desde q1 (m)</label>
-              <input type="number" id="inputDist"  step="any" value="1" min="1e-12">
-            </div>
-            <div>
-              <label>Ángulo desde q1 (°)</label>
-              <input type="number" id="inputAngle" step="1"   value="0" min="0" max="360">
-            </div>
+        <div class="row2">
+          <div>
+            <label>Valor (C)</label>
+            <input type="number" id="valorCarga" step="any" value="0.000001">
           </div>
-          <div style="font-size:.61rem;color:#383868;margin-top:4px">
-            0° = +X (derecha) · 90° = +Y (arriba)
+          <div>
+            <label>Signo</label>
+            <select id="tipoCarga">
+              <option value="positiva">Positiva (+)</option>
+              <option value="negativa">Negativa (−)</option>
+            </select>
           </div>
         </div>
-
-        <button class="btn-add" id="btnAgregarCarga">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="16"/>
-            <line x1="8"  y1="12" x2="16" y2="12"/>
+        <button class="btn-primary" id="btnAgregarCarga">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5"  y1="12" x2="19" y2="12"/>
           </svg>
           Agregar carga
         </button>
       </div>
 
       <div class="section">
-        <div class="section-title">Cargas (<span id="numCargas">0</span>)</div>
+        <div class="section-title">
+          Cargas
+          <span style="margin-left:auto;color:var(--text-2);font-size:0.65rem;font-weight:600">
+            (<span id="numCargas">0/4</span>)
+          </span>
+        </div>
         <div id="listaCargas"></div>
         <button class="btn-danger" id="btnLimpiar">✕ Limpiar todo</button>
       </div>
 
+      <div class="section" id="pointPSection" style="display:none">
+        <div class="section-title" style="--accent: var(--point)">Punto libre P</div>
+        <div class="point-card">
+          <div class="point-header">
+            <button class="point-pick" title="Establecer P como objetivo"></button>
+            <span class="point-name">P</span>
+            <span class="point-desc">target campo eléctrico</span>
+          </div>
+          <div class="row2">
+            <div>
+              <label>x (m)</label>
+              <input type="number" data-px step="any" value="1.5">
+            </div>
+            <div>
+              <label>y (m)</label>
+              <input type="number" data-py step="any" value="0.8">
+            </div>
+          </div>
+          <div style="font-size:0.62rem;color:var(--text-3);margin-top:6px">
+            Arrástralo sobre el canvas
+          </div>
+        </div>
+      </div>
+
       <div class="section">
-        <div class="section-title">Fuerzas entre pares (Coulomb)</div>
+        <div class="section-title">Fuerzas entre pares</div>
         <div id="resultados">
-          <p style="color:#303060;font-size:.72rem">Coloca al menos 2 cargas.</p>
+          <p class="muted">Coloca al menos 2 cargas.</p>
         </div>
       </div>
 
-      <!-- Sección campo eléctrico — se muestra al activar el toggle -->
-      <div class="section" id="secEField" style="display:none">
-        <div class="section-title efield-title">⚡ Campo eléctrico en cada carga</div>
-        <div id="resultados-efield">
-          <p style="color:#1a3a5a;font-size:.72rem">Activar campo E para ver resultados.</p>
-        </div>
-      </div>
+    </aside>
 
-    </div>
+    <main class="canvas-area">
 
-    <!-- ── ÁREA DE CANVAS ── -->
-    <div class="canvas-area">
       <div class="canvas-toolbar">
-        <span class="hint">🔴 Positiva · 🔵 Negativa</span>
-        <span class="hint" id="dragHint">☝ Arrastra cargas · espacio vacío = mover vista</span>
-
-        <!-- Toggles de campo -->
-        <button class="toggle-btn" id="btnToggleEField"      title="Tecla E">⚡ Campo E</button>
-        <button class="toggle-btn" id="btnToggleFieldLines"  title="Líneas de campo">〜 Líneas</button>
-
-        <span class="key-hint">E = campo · F = ajustar · 0 = reset</span>
+        <span class="hint" id="dragHint">Arrastra cargas/P · espacio vacío = mover vista</span>
+        <span class="key-hint">1 = Fuerza · 2 = Campo · F = ajustar · 0 = reset</span>
 
         <div class="zoom-controls">
-          <button class="zbtn" id="btnZoomMinus" title="Alejar  (−)">−</button>
+          <button class="zbtn" id="btnZoomMinus" title="Alejar (−)">−</button>
           <span class="zlevel" id="zoomLevel">1.00×</span>
           <button class="zbtn" id="btnZoomPlus" title="Acercar (+)">+</button>
-          <button class="zbtn" id="btnFit"      title="Ajustar (F)">⊡</button>
-          <button class="zbtn" id="btnReset"    title="Reset   (0)">⌂</button>
-          <span class="sinfo"  id="sinfo">1 m/100px</span>
+          <button class="zbtn" id="btnFit" title="Ajustar (F)">⊡</button>
+          <button class="zbtn" id="btnReset" title="Reset (0)">⌂</button>
+          <span class="sinfo" id="sinfo">1 m/100px</span>
         </div>
       </div>
 
       <div class="canvas-wrapper">
         <canvas id="canvas" class="grab"></canvas>
         <div class="info-badge">
-          <strong>Constante de Coulomb</strong>
+          <b>Constante de Coulomb</b>
           k = 8.99 × 10⁹ N·m²/C²
-          <span class="efield-const">E = k·q / r² &nbsp;[N/C]</span>
         </div>
       </div>
-    </div>
+
+    </main>
+
+    <aside class="panel-right">
+      <div id="mathPanel"></div>
+    </aside>
 
   </div>
 

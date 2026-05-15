@@ -32,6 +32,18 @@ export function formatE(v) {
   return v.toExponential(2) + ' N/C';
 }
 
+export function formatF(v) {
+  const a = Math.abs(v);
+  if (a < 1e-30)  return '0 N';
+  if (a >= 1e9)   return (v / 1e9).toPrecision(3)   + ' GN';
+  if (a >= 1e6)   return (v / 1e6).toPrecision(3)   + ' MN';
+  if (a >= 1e3)   return (v / 1e3).toPrecision(3)   + ' kN';
+  if (a >= 1)     return v.toPrecision(3)            + ' N';
+  if (a >= 1e-3)  return (v * 1e3).toPrecision(3)   + ' mN';
+  if (a >= 1e-6)  return (v * 1e6).toPrecision(3)   + ' μN';
+  return v.toExponential(2) + ' N';
+}
+
 export function niceNum(v) {
   if (Math.abs(v) < 1e-14) return '0';
   const a = Math.abs(v);

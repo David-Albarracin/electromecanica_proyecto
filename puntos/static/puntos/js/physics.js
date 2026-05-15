@@ -1,33 +1,54 @@
 /**
- * physics.js — Cálculos electromagnéticos puros (sin dependencias DOM)
+ * physics.js — Cálculos electromagnéticos puros
  * Ley de Coulomb + Campo Eléctrico (superposición vectorial)
  */
 
-export const K = 8.99e9; // N·m²/C² — constante de Coulomb
+export const K = 8.99e9; // N·m²/C²
 
-// ── Fuerza entre dos cargas (magnitud escalar) ──────────────────────────────
+// ── Magnitud de fuerza entre dos cargas ─────────────────────────────────────
 export function coulombMag(q1, q2, r) {
   return K * Math.abs(q1 * q2) / (r * r);
 }
 
-// ── Fuerza neta sobre una carga objetivo (vector resultante) ─────────────────
-export function netForce(charges, target) {
-  let fx = 0, fy = 0;
-  for (const c of charges) {
-    if (c === target) continue;
-    const dx = target.wx - c.wx;
-    const dy = target.wy - c.wy;
-    const r = Math.hypot(dx, dy);
-    if (r < 1e-14) continue;
-    const F = coulombMag(target.valor, c.valor, r);
-    const sign = target.tipo === c.tipo ? 1 : -1; // repulsión vs atracción
-    fx += sign * F * (dx / r);
-    fy += sign * F * (dy / r);
-  }
-  return { fx, fy, mag: Math.hypot(fx, fy) };
+// ── Aporte vectorial de UNA carga c sobre target (fuerza) ───────────────────
+// target = { wx, wy, valor, tipo } (debe tener valor signed)
+export function forceContribution(c, target) {
+  const dx = target.wx - c.wx;
+  const dy = target.wy - c.wy;
+  const r = Math.hypot(dx, dy);
+  if (r < 1e-14) return null;
+  const F = coulombMag(target.valor, c.valor, r);
+  const sign = target.tipo === c.tipo ? 1 : -1; // repulsión vs atracción
+  const fx = sign * F * (dx / r);
+  const fy = sign * F * (dy / r);
+  return {
+    fx, fy, F, r,
+    mag: F,
+    ang: ((Math.atan2(fy, fx) * 180 / Math.PI) + 360) % 360,
+    attraction: target.tipo !== c.tipo,
+  };
 }
 
-// ── Fuerza escalar entre un par de cargas (para tabla) ──────────────────────
+// ── Fuerza neta sobre una carga objetivo ─────────────────────────────────────
+export function netForce(charges, target) {
+  let fx = 0, fy = 0;
+  const parts = [];
+  for (const c of charges) {
+    if (c === target) continue;
+    const p = forceContribution(c, target);
+    if (!p) continue;
+    fx += p.fx; fy += p.fy;
+    parts.push({ source: c, ...p });
+  }
+  return {
+    fx, fy,
+    mag: Math.hypot(fx, fy),
+    ang: ((Math.atan2(fy, fx) * 180 / Math.PI) + 360) % 360,
+    parts,
+  };
+}
+
+// ── Fuerza escalar entre par (para tabla par a par) ──────────────────────────
 export function pairForce(ci, cj) {
   const dx = cj.wx - ci.wx;
   const dy = cj.wy - ci.wy;
@@ -41,37 +62,45 @@ export function pairForce(ci, cj) {
   };
 }
 
-// ── Campo eléctrico en un punto P debido a UNA carga ─────────────────────────
-// E = k·q / r² — dirección: alejándose de carga positiva, acercándose a negativa
-export function electricFieldOne(charge, px, py) {
-  const dx = px - charge.wx;
-  const dy = py - charge.wy;
+// ── Aporte vectorial de UNA carga al campo E en punto (px,py) ───────────────
+export function efieldContribution(c, px, py) {
+  const dx = px - c.wx;
+  const dy = py - c.wy;
   const r2 = dx * dx + dy * dy;
-  if (r2 < 1e-28) return { ex: 0, ey: 0 };
-  // valor ya es signed (positivo/negativo), E = k*q/r³ * (r_vector)
-  const factor = K * charge.valor / (r2 * Math.sqrt(r2));
-  return { ex: factor * dx, ey: factor * dy };
+  if (r2 < 1e-28) return null;
+  const r = Math.sqrt(r2);
+  // E = k*q/r² · r̂   (signed via c.valor)
+  const Emag = K * Math.abs(c.valor) / r2;
+  const factor = K * c.valor / (r2 * r);
+  const ex = factor * dx;
+  const ey = factor * dy;
+  return {
+    ex, ey, r,
+    mag: Math.hypot(ex, ey) || Emag,
+    Emag,
+    ang: ((Math.atan2(ey, ex) * 180 / Math.PI) + 360) % 360,
+  };
 }
 
-// ── Campo eléctrico neto en P por superposición ──────────────────────────────
+export function electricFieldOne(charge, px, py) {
+  const r = efieldContribution(charge, px, py);
+  return r ? { ex: r.ex, ey: r.ey } : { ex: 0, ey: 0 };
+}
+
+// ── Campo E neto en punto P por superposición ────────────────────────────────
 export function netElectricField(charges, px, py) {
   let ex = 0, ey = 0;
+  const parts = [];
   for (const c of charges) {
-    const e = electricFieldOne(c, px, py);
-    ex += e.ex;
-    ey += e.ey;
+    const p = efieldContribution(c, px, py);
+    if (!p) continue;
+    ex += p.ex; ey += p.ey;
+    parts.push({ source: c, ...p });
   }
-  const mag = Math.hypot(ex, ey);
-  return { ex, ey, mag };
-}
-
-// ── Potencial eléctrico en P (escalar, superposición) ───────────────────────
-export function electricPotential(charges, px, py) {
-  let V = 0;
-  for (const c of charges) {
-    const r = Math.hypot(px - c.wx, py - c.wy);
-    if (r < 1e-14) continue;
-    V += K * c.valor / r;
-  }
-  return V;
+  return {
+    ex, ey,
+    mag: Math.hypot(ex, ey),
+    ang: ((Math.atan2(ey, ex) * 180 / Math.PI) + 360) % 360,
+    parts,
+  };
 }

@@ -1,0 +1,40 @@
+/* base.css — Reset, variables, tipografía, scrollbars */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-0:        #060614;
+  --bg-1:        #0a0a1c;
+  --bg-2:        #0e0e26;
+  --bg-3:        #14143a;
+  --bg-4:        #1a1a42;
+  --border:      #1f1f48;
+  --border-soft: #181838;
+  --text-0:      #e6e8f5;
+  --text-1:      #b4b8d8;
+  --text-2:      #7a7eae;
+  --text-3:      #4d5180;
+  --text-4:      #2d3158;
+  --accent:      #a78bfa;
+  --force:       #facc15;
+  --efield:      #22d3ee;
+  --plus:        #ef4444;
+  --minus:       #3b82f6;
+  --point:       #f472b6;
+}
+
+html, body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg-0);
+  color: var(--text-0);
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+}
+
+body { display: flex; flex-direction: column; }
+
+::-webkit-scrollbar         { width: 6px; height: 6px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #2a2860; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #3a3880; }
