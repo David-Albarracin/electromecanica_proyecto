@@ -291,6 +291,27 @@ export function drawAuxRightTriangle2(ctx) {
   ctx.restore();
 }
 
+// ── Dirección pantalla del vector resultante en target (para alejar labels) ──
+function targetResultantScreenDir(c) {
+  const { mode, cargas, targetType, targetId } = state;
+  if (targetType !== 'charge' || c.id !== targetId) return null;
+  let vx = 0, vy = 0;
+  if (mode === 'force') {
+    const r = netForce(cargas, c);
+    if (r.mag < 1e-30) return null;
+    vx = r.fx; vy = r.fy;
+  } else {
+    const others = cargas.filter(x => x !== c);
+    if (!others.length) return null;
+    const r = netElectricField(others, c.wx, c.wy);
+    if (r.mag < 1e-30) return null;
+    vx = r.ex; vy = r.ey;
+  }
+  const m = Math.hypot(vx, vy);
+  // Eje pantalla: y invertida
+  return { sx: vx / m, sy: -vy / m };
+}
+
 // ── Cargas (con halo identificador por índice) ───────────────────────────────
 export function drawCharges(ctx) {
   const { cargas, dragging, targetType, targetId } = state;
@@ -303,16 +324,17 @@ export function drawCharges(ctx) {
     const r = drag ? 17 : 14;
 
     // Halo identificador
-    const g = ctx.createRadialGradient(sp.x, sp.y, r * 0.5, sp.x, sp.y, isTarget ? 40 : 32);
+    const haloR = isTarget ? 44 : 32;
+    const g = ctx.createRadialGradient(sp.x, sp.y, r * 0.5, sp.x, sp.y, haloR);
     g.addColorStop(0, halo + 'aa');
     g.addColorStop(0.6, halo + '22');
     g.addColorStop(1, 'transparent');
-    ctx.beginPath(); ctx.arc(sp.x, sp.y, isTarget ? 40 : 32, 0, 2*Math.PI);
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, haloR, 0, 2*Math.PI);
     ctx.fillStyle = g; ctx.fill();
 
     // Anillo target
     if (isTarget) {
-      ctx.beginPath(); ctx.arc(sp.x, sp.y, r + 7, 0, 2*Math.PI);
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, r + 8, 0, 2*Math.PI);
       ctx.strokeStyle = halo; ctx.lineWidth = 2; ctx.setLineDash([3, 3]);
       ctx.stroke(); ctx.setLineDash([]);
     }
@@ -330,14 +352,24 @@ export function drawCharges(ctx) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(c.tipo === 'positiva' ? '+' : '−', sp.x, sp.y);
 
-    // Etiqueta Q
-    ctx.font = 'bold 11px Segoe UI';
-    ctx.fillStyle = halo;
-    ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-    ctx.fillText('Q' + (i + 1), sp.x + r + 4, sp.y);
-    ctx.font = '9px Segoe UI'; ctx.fillStyle = '#7a7aa0';
-    ctx.textBaseline = 'top';
-    ctx.fillText(formatQ(c.valor), sp.x + r + 4, sp.y + 1);
+    // Etiqueta Q + valor — target: pill combinada lejos del vector
+    if (isTarget) {
+      const dir = targetResultantScreenDir(c);
+      const dx  = dir ? -dir.sx : 0.7;
+      const dy  = dir ? -dir.sy : 0.7;
+      const D   = r + 56;
+      const lx  = sp.x + dx * D;
+      const ly  = sp.y + dy * D;
+      drawPill(ctx, lx, ly, `Q${i+1} · ${formatQ(c.valor)}`, halo, 10);
+    } else {
+      ctx.font = 'bold 11px Segoe UI';
+      ctx.fillStyle = halo;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+      ctx.fillText('Q' + (i + 1), sp.x + r + 5, sp.y);
+      ctx.font = '9px Segoe UI'; ctx.fillStyle = '#8a8ab0';
+      ctx.textBaseline = 'top';
+      ctx.fillText(formatQ(c.valor), sp.x + r + 5, sp.y + 1);
+    }
   });
 }
 
@@ -429,8 +461,8 @@ function drawForceVectors(ctx) {
     // Componentes X/Y resultantes
     drawComponents(ctx, tp, x2, y2, C.forceCompX, C.forceCompY, res.fx, res.fy, 'F');
 
-    // Etiqueta magnitud
-    drawPill(ctx, x2 + (nx > 0 ? 24 : -24), y2,
+    // Etiqueta magnitud — alineada con flecha, beyond tip para no chocar con componentes
+    drawPill(ctx, x2 + nx * 22, y2 - ny * 22,
       formatF(res.mag), C.forceArrow, 10);
   }
 }
@@ -467,7 +499,7 @@ function drawEFieldVectors(ctx) {
     drawArrow(ctx, tp.x + nx * 18, tp.y - ny * 18, x2, y2,
       C.efieldArrow, 3, 13, C.efieldGlow);
     drawComponents(ctx, tp, x2, y2, C.efieldCompX, C.efieldCompY, res.ex, res.ey, 'E');
-    drawPill(ctx, x2 + (nx > 0 ? 24 : -24), y2,
+    drawPill(ctx, x2 + nx * 22, y2 - ny * 22,
       formatE(res.mag), C.efieldArrow, 10);
   }
 }
@@ -477,19 +509,34 @@ function drawComponents(ctx, origin, x2, y2, colX, colY, valX, valY, sym) {
   ctx.save();
   ctx.setLineDash([4, 4]);
   ctx.lineWidth = 1.4;
-  // Línea X (horizontal hasta x2)
+  // Línea X (horizontal)
   ctx.strokeStyle = colX;
   ctx.beginPath(); ctx.moveTo(origin.x, origin.y); ctx.lineTo(x2, origin.y); ctx.stroke();
-  // Línea Y (vertical hasta y2)
+  // Línea Y (vertical)
   ctx.strokeStyle = colY;
   ctx.beginPath(); ctx.moveTo(x2, origin.y); ctx.lineTo(x2, y2); ctx.stroke();
   ctx.setLineDash([]);
-  // Etiquetas
-  const fmt = sym === 'F' ? formatF : formatE;
-  drawPill(ctx, (origin.x + x2)/2, origin.y + (y2 > origin.y ? -12 : 12),
-    `${sym}x = ${fmt(valX)}`, colX, 9);
-  drawPill(ctx, x2 + (x2 > origin.x ? 30 : -30), (origin.y + y2)/2,
-    `${sym}y = ${fmt(valY)}`, colY, 9);
+
+  const fmt   = sym === 'F' ? formatF : formatE;
+  const dx    = x2 - origin.x;
+  const dy    = y2 - origin.y;
+  const signX = Math.sign(dx) || 1;
+  const signY = Math.sign(dy) || 1;
+  const CHARGE_PAD = 38; // libra cuerpo carga + halo
+
+  // Ex pill — en extremo lejano de línea X (corner), empujado hacia afuera
+  //   en X y opuesto al rectángulo en Y → lejos del cuerpo de la carga
+  let exX = x2 + signX * 16;
+  // Si componente X muy corta, forzar pill fuera del halo
+  if (Math.abs(exX - origin.x) < CHARGE_PAD) exX = origin.x + signX * CHARGE_PAD;
+  const exY = origin.y - signY * 18;
+  drawPill(ctx, exX, exY, `${sym}x = ${fmt(valX)}`, colX, 9);
+
+  // Ey pill — fuera del rectángulo en X, mitad Y de línea vertical
+  let eyY = origin.y + dy * 0.5;
+  if (Math.abs(eyY - origin.y) < CHARGE_PAD * 0.4) eyY = origin.y + signY * CHARGE_PAD * 0.5;
+  const eyX = x2 + signX * 42;
+  drawPill(ctx, eyX, eyY, `${sym}y = ${fmt(valY)}`, colY, 9);
   ctx.restore();
 }
 
@@ -514,23 +561,24 @@ function drawResultantAngle(ctx) {
   }
   if (!vec) return;
   const tp = w2s(t.wx, t.wy);
-  // Línea eje +X local
+  // Línea eje +X local (corta)
   ctx.save();
-  ctx.strokeStyle = 'rgba(160,160,200,0.3)';
+  ctx.strokeStyle = 'rgba(160,160,200,0.28)';
   ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(tp.x, tp.y); ctx.lineTo(tp.x + 70, tp.y); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tp.x, tp.y); ctx.lineTo(tp.x + 36, tp.y); ctx.stroke();
   ctx.setLineDash([]);
-  // Arco θ
-  const r = 36;
+  // Arco θ — radio compacto, label colocada radialmente más afuera en bisectriz
+  const r = 22;
   const aEnd = -vec.ang * Math.PI / 180;
   ctx.strokeStyle = color; ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.arc(tp.x, tp.y, r, 0, aEnd, aEnd < 0);
   ctx.stroke();
   const mid = aEnd / 2;
+  // Label θ — distancia que la separa de cuerpo carga (r+14 mínimo) y de eje X label area
   const lx = tp.x + (r + 18) * Math.cos(mid);
   const ly = tp.y + (r + 18) * Math.sin(mid);
-  drawPill(ctx, lx, ly, `θ = ${vec.ang.toFixed(2)}°`, color, 9.5);
+  drawPill(ctx, lx, ly, `θ = ${vec.ang.toFixed(1)}°`, color, 9);
   ctx.restore();
 }
 

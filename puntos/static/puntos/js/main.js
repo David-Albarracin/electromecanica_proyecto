@@ -10,6 +10,8 @@ import { agregarCarga, eliminarCarga,
          setMode, setTarget,
          actualizarLista, actualizarListaSilent,
          updateZoomHUD, setHint }         from './ui.js';
+
+const CLICK_THRESHOLD_PX = 5;
 import { drawGrid, drawCharges, drawPointP,
          drawAnalysis, hitPointP }        from './renderer.js';
 import { renderMathPanel }                from './mathPanel.js';
@@ -79,15 +81,15 @@ canvas.addEventListener('mousedown', e => {
   const { x, y } = getPos(e);
   // Punto P (sólo en modo campo)
   if (state.mode === 'efield' && hitPointP(x, y)) {
-    state.dragging = { type: 'point' };
+    state.dragging = { type: 'point', sx0: x, sy0: y, moved: false };
     canvas.classList.replace('grab', 'grabbing');
-    setHint('🟣 Arrastrando P', true);
+    setHint('Arrastrando P', true);
     e.preventDefault();
     return;
   }
   const hit = hitTestCharge(x, y);
   state.dragging = hit
-    ? { type: 'charge', charge: hit }
+    ? { type: 'charge', charge: hit, sx0: x, sy0: y, moved: false }
     : { type: 'pan', mx0: x, my0: y, px0: cam.panX, py0: cam.panY };
   canvas.classList.replace('grab', 'grabbing');
   if (hit) {
@@ -105,17 +107,25 @@ canvas.addEventListener('mousemove', e => {
     return;
   }
   if (state.dragging.type === 'charge') {
-    const w = s2w(x, y);
-    state.dragging.charge.wx = w.wx;
-    state.dragging.charge.wy = w.wy;
-    actualizarListaSilent();
-    renderMathPanel();
+    const d = state.dragging;
+    if (Math.hypot(x - d.sx0, y - d.sy0) > CLICK_THRESHOLD_PX) d.moved = true;
+    if (d.moved) {
+      const w = s2w(x, y);
+      d.charge.wx = w.wx;
+      d.charge.wy = w.wy;
+      actualizarListaSilent();
+      renderMathPanel();
+    }
   } else if (state.dragging.type === 'point') {
-    const w = s2w(x, y);
-    state.pointP.wx = w.wx;
-    state.pointP.wy = w.wy;
-    actualizarListaSilent();
-    renderMathPanel();
+    const d = state.dragging;
+    if (Math.hypot(x - d.sx0, y - d.sy0) > CLICK_THRESHOLD_PX) d.moved = true;
+    if (d.moved) {
+      const w = s2w(x, y);
+      state.pointP.wx = w.wx;
+      state.pointP.wy = w.wy;
+      actualizarListaSilent();
+      renderMathPanel();
+    }
   } else {
     cam.panX = state.dragging.px0 + (x - state.dragging.mx0);
     cam.panY = state.dragging.py0 + (y - state.dragging.my0);
@@ -128,10 +138,17 @@ canvas.addEventListener('mouseleave', stopDrag);
 
 function stopDrag() {
   if (!state.dragging) return;
+  const d = state.dragging;
+  // Click sin movimiento → seleccionar target
+  if (d.type === 'charge' && !d.moved) {
+    setTarget('charge', d.charge.id);
+  } else if (d.type === 'point' && !d.moved) {
+    setTarget('point');
+  }
   state.dragging = null;
   canvas.classList.replace('grabbing', 'grab');
   canvas.style.cursor = '';
-  setHint('Arrastra cargas/P · espacio vacío = mover vista', false);
+  setHint('Click carga = target · arrastra = mover · espacio = pan', false);
   actualizarLista();
   dibujar();
 }
@@ -153,13 +170,13 @@ canvas.addEventListener('touchstart', e => {
   }
   const { x, y } = getPos(e);
   if (state.mode === 'efield' && hitPointP(x, y)) {
-    state.dragging = { type: 'point' };
+    state.dragging = { type: 'point', sx0: x, sy0: y, moved: false };
     e.preventDefault();
     return;
   }
   const hit = hitTestCharge(x, y);
   state.dragging = hit
-    ? { type: 'charge', charge: hit }
+    ? { type: 'charge', charge: hit, sx0: x, sy0: y, moved: false }
     : { type: 'pan', mx0: x, my0: y, px0: cam.panX, py0: cam.panY };
   e.preventDefault();
 }, { passive: false });
@@ -179,17 +196,25 @@ canvas.addEventListener('touchmove', e => {
   if (!state.dragging) return;
   const { x, y } = getPos(e);
   if (state.dragging.type === 'charge') {
-    const w = s2w(x, y);
-    state.dragging.charge.wx = w.wx;
-    state.dragging.charge.wy = w.wy;
-    actualizarListaSilent();
-    renderMathPanel();
+    const d = state.dragging;
+    if (Math.hypot(x - d.sx0, y - d.sy0) > CLICK_THRESHOLD_PX) d.moved = true;
+    if (d.moved) {
+      const w = s2w(x, y);
+      d.charge.wx = w.wx;
+      d.charge.wy = w.wy;
+      actualizarListaSilent();
+      renderMathPanel();
+    }
   } else if (state.dragging.type === 'point') {
-    const w = s2w(x, y);
-    state.pointP.wx = w.wx;
-    state.pointP.wy = w.wy;
-    actualizarListaSilent();
-    renderMathPanel();
+    const d = state.dragging;
+    if (Math.hypot(x - d.sx0, y - d.sy0) > CLICK_THRESHOLD_PX) d.moved = true;
+    if (d.moved) {
+      const w = s2w(x, y);
+      state.pointP.wx = w.wx;
+      state.pointP.wy = w.wy;
+      actualizarListaSilent();
+      renderMathPanel();
+    }
   } else {
     cam.panX = state.dragging.px0 + (x - state.dragging.mx0);
     cam.panY = state.dragging.py0 + (y - state.dragging.my0);
