@@ -7,6 +7,7 @@ import { cam, S, w2s, s2w,
          initCamera, fitAll, zoomAt }     from './camera.js';
 import { agregarCarga, eliminarCarga,
          limpiar, onEditField, onEditPointP,
+         onEditPairDist,
          setMode, setTarget,
          actualizarLista, actualizarListaSilent,
          updateZoomHUD, setHint }         from './ui.js';
@@ -248,6 +249,12 @@ document.getElementById('listaCargas').addEventListener('input', e => {
   const inp = e.target.closest('input[data-field]');
   if (inp) {
     onEditField(Number(inp.dataset.id), inp.dataset.field, inp.value);
+    dibujar();
+    return;
+  }
+  const rInp = e.target.closest('input[data-rfield]');
+  if (rInp) {
+    onEditPairDist(Number(rInp.dataset.from), Number(rInp.dataset.to), rInp.value);
     dibujar();
   }
 });

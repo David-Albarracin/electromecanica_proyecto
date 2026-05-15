@@ -352,23 +352,39 @@ export function drawCharges(ctx) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(c.tipo === 'positiva' ? '+' : '−', sp.x, sp.y);
 
-    // Etiqueta Q + valor — target: pill combinada lejos del vector
+    // Etiqueta Q + valor
     if (isTarget) {
       const dir = targetResultantScreenDir(c);
       const dx  = dir ? -dir.sx : 0.7;
       const dy  = dir ? -dir.sy : 0.7;
-      const D   = r + 56;
+      const D   = r + 70;  // más alejado del cuerpo
       const lx  = sp.x + dx * D;
       const ly  = sp.y + dy * D;
       drawPill(ctx, lx, ly, `Q${i+1} · ${formatQ(c.valor)}`, halo, 10);
     } else {
-      ctx.font = 'bold 11px Segoe UI';
-      ctx.fillStyle = halo;
-      ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
-      ctx.fillText('Q' + (i + 1), sp.x + r + 5, sp.y);
-      ctx.font = '9px Segoe UI'; ctx.fillStyle = '#8a8ab0';
-      ctx.textBaseline = 'top';
-      ctx.fillText(formatQ(c.valor), sp.x + r + 5, sp.y + 1);
+      // Flex: alejarse del target en pantalla
+      const targetC = getTarget();
+      let dx = 1, dy = 0; // default derecha
+      if (targetC) {
+        const tdx = c.wx - targetC.wx;
+        const tdy = c.wy - targetC.wy;
+        const m = Math.hypot(tdx, tdy);
+        if (m > 1e-14) {
+          dx =  tdx / m;
+          dy = -tdy / m; // pantalla
+        }
+      }
+      const D  = r + 32;
+      const lx = sp.x + dx * D;
+      const ly = sp.y + dy * D;
+      drawPill(ctx, lx, ly - 9, `Q${i+1}`, halo, 10);
+      drawPill(ctx, lx, ly + 9, formatQ(c.valor), 'rgba(160,170,210,0.85)', 8.5);
+
+      // Ángulo desde target hacia esta carga (informativo)
+      if (targetC) {
+        const ang = ((Math.atan2(c.wy - targetC.wy, c.wx - targetC.wx) * 180 / Math.PI) + 360) % 360;
+        drawPill(ctx, lx, ly + 26, `θ = ${ang.toFixed(1)}°`, 'rgba(252,211,77,0.7)', 8);
+      }
     }
   });
 }
@@ -522,20 +538,18 @@ function drawComponents(ctx, origin, x2, y2, colX, colY, valX, valY, sym) {
   const dy    = y2 - origin.y;
   const signX = Math.sign(dx) || 1;
   const signY = Math.sign(dy) || 1;
-  const CHARGE_PAD = 38; // libra cuerpo carga + halo
+  const CHARGE_PAD = 46;
 
-  // Ex pill — en extremo lejano de línea X (corner), empujado hacia afuera
-  //   en X y opuesto al rectángulo en Y → lejos del cuerpo de la carga
-  let exX = x2 + signX * 16;
-  // Si componente X muy corta, forzar pill fuera del halo
+  // Ex pill — extremo lejano de línea X, empujado fuera del rectángulo
+  let exX = x2 + signX * 20;
   if (Math.abs(exX - origin.x) < CHARGE_PAD) exX = origin.x + signX * CHARGE_PAD;
-  const exY = origin.y - signY * 18;
+  const exY = origin.y - signY * 22;
   drawPill(ctx, exX, exY, `${sym}x = ${fmt(valX)}`, colX, 9);
 
-  // Ey pill — fuera del rectángulo en X, mitad Y de línea vertical
+  // Ey pill — fuera del rectángulo en X, mitad Y
   let eyY = origin.y + dy * 0.5;
-  if (Math.abs(eyY - origin.y) < CHARGE_PAD * 0.4) eyY = origin.y + signY * CHARGE_PAD * 0.5;
-  const eyX = x2 + signX * 42;
+  if (Math.abs(eyY - origin.y) < CHARGE_PAD * 0.45) eyY = origin.y + signY * CHARGE_PAD * 0.55;
+  const eyX = x2 + signX * 50;
   drawPill(ctx, eyX, eyY, `${sym}y = ${fmt(valY)}`, colY, 9);
   ctx.restore();
 }

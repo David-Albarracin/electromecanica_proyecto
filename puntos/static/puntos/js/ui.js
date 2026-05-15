@@ -100,6 +100,25 @@ export function onEditField(id, field, rawVal) {
   renderMathPanel();
 }
 
+// ── Editar r entre cargas i,j → mueve j manteniendo dirección desde i ──
+export function onEditPairDist(fromIdx, toIdx, rawVal) {
+  const newR = parseFloat(rawVal);
+  if (isNaN(newR) || newR < 1e-12) return;
+  const a = state.cargas[fromIdx], b = state.cargas[toIdx];
+  if (!a || !b) return;
+  const dx = b.wx - a.wx, dy = b.wy - a.wy;
+  const cur = Math.hypot(dx, dy);
+  if (cur < 1e-14) {
+    b.wx = a.wx + newR;
+    b.wy = a.wy;
+  } else {
+    b.wx = a.wx + (dx / cur) * newR;
+    b.wy = a.wy + (dy / cur) * newR;
+  }
+  actualizarListaSilent();
+  renderMathPanel();
+}
+
 // ── Punto P ─────────────────────────────────────────────────────────────────
 export function onEditPointP(field, rawVal) {
   const val = parseFloat(rawVal);
@@ -127,6 +146,22 @@ export function actualizarLista() {
     const div = document.createElement('div');
     div.className = 'charge-item' + (isTarget ? ' is-target' : '') + (isDrag ? ' drag-active' : '');
     div.style.setProperty('--halo', halo);
+    // Distancias a otras cargas (editables)
+    let distHTML = '';
+    if (state.cargas.length > 1) {
+      const items = state.cargas.map((other, j) => {
+        if (j === i) return '';
+        const r = Math.hypot(other.wx - c.wx, other.wy - c.wy);
+        return `
+          <div class="r-input">
+            <label>r<sub>${i+1}${j+1}</sub></label>
+            <input type="number" data-from="${i}" data-to="${j}" data-rfield
+                   step="any" min="1e-12" value="${r.toPrecision(5)}" title="Distancia a Q${j+1}">
+          </div>`;
+      }).join('');
+      distHTML = `<div class="r-block">${items}</div>`;
+    }
+
     div.innerHTML = `
       <div class="charge-header">
         <button class="target-pick" data-target-id="${c.id}"
@@ -152,7 +187,8 @@ export function actualizarLista() {
           <label>|q| (C)</label>
           <input type="number" data-id="${c.id}" data-field="valor" step="any" value="${Math.abs(c.valor)}">
         </div>
-      </div>`;
+      </div>
+      ${distHTML}`;
     cont.appendChild(div);
   });
 
@@ -171,19 +207,28 @@ export function actualizarLista() {
 
 // Actualización silenciosa: sólo valores numéricos (no reconstruye DOM)
 export function actualizarListaSilent() {
+  const focused = document.activeElement;
   document.querySelectorAll('#listaCargas .charge-item').forEach((item, i) => {
     const c = state.cargas[i]; if (!c) return;
-    const focused = document.activeElement;
     item.querySelectorAll('input[data-field]').forEach(inp => {
       if (inp === focused) return;
       if (inp.dataset.field === 'wx')    inp.value = c.wx.toPrecision(5);
       if (inp.dataset.field === 'wy')    inp.value = c.wy.toPrecision(5);
       if (inp.dataset.field === 'valor') inp.value = Math.abs(c.valor);
     });
+    // r inputs
+    item.querySelectorAll('input[data-rfield]').forEach(inp => {
+      if (inp === focused) return;
+      const fromI = Number(inp.dataset.from);
+      const toI   = Number(inp.dataset.to);
+      const a = state.cargas[fromI], b = state.cargas[toI];
+      if (!a || !b) return;
+      const r = Math.hypot(b.wx - a.wx, b.wy - a.wy);
+      inp.value = r.toPrecision(5);
+    });
   });
   const pSection = document.getElementById('pointPSection');
   if (pSection && state.mode === 'efield') {
-    const focused = document.activeElement;
     const px = pSection.querySelector('[data-px]');
     const py = pSection.querySelector('[data-py]');
     if (px && px !== focused) px.value = state.pointP.wx.toPrecision(5);
